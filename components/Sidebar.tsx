@@ -5,72 +5,16 @@ import {
   Image as ImageIcon,
   User,
   ChevronRight,
-  Zap
+  Zap,
+  LogOut
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabaseClient';
 
 interface SidebarProps {
   currentView: string;
   onViewChange: (view: any) => void;
 }
-
-export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange }) => {
-  return (
-    <aside className="fixed bottom-0 left-0 w-full h-16 lg:h-screen lg:w-64 lg:top-0 bg-black border-t lg:border-t-0 lg:border-r border-zinc-800 flex flex-row lg:flex-col transition-all duration-300 z-50">
-      {/* Logo Area - Hidden on Mobile */}
-      <div className="hidden lg:flex p-6 items-center justify-between cursor-pointer" onClick={() => onViewChange('home')}>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-white/5 relative">
-            <Zap className="w-5 h-5 text-black fill-black" />
-          </div>
-          <span className="font-bold text-lg text-white tracking-tight">Ultra</span>
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 flex flex-row lg:flex-col items-center lg:items-stretch justify-around lg:justify-start px-2 lg:px-3 lg:py-6 space-x-2 lg:space-x-0 lg:space-y-2 overflow-visible lg:overflow-y-auto custom-scrollbar">
-        <NavItem
-          icon={<Home size={24} className="lg:w-5 lg:h-5" />}
-          label="Início"
-          active={currentView === 'home'}
-          onClick={() => onViewChange('home')}
-        />
-
-        <NavItem
-          icon={<ScanFace size={24} className="lg:w-5 lg:h-5" />}
-          label="UltraPrompt"
-          active={currentView === 'ultraprompt'}
-          onClick={() => onViewChange('ultraprompt')}
-        />
-
-        <NavItem
-          icon={<Zap size={24} className="lg:w-5 lg:h-5" />}
-          label="UltraGen"
-          active={currentView === 'ultragen'}
-          onClick={() => onViewChange('ultragen')}
-          badge="Novo"
-        />
-
-        <div className="pt-4 mt-4 border-t border-zinc-800 hidden lg:block">
-          <NavItem
-            icon={<User size={24} className="lg:w-5 lg:h-5" />}
-            label="Planos"
-            active={currentView === 'pricing'}
-            onClick={() => onViewChange('pricing')}
-          />
-        </div>
-      </nav>
-
-      {/* User Mini Profile */}
-      <div className="hidden lg:block p-4 border-t border-zinc-900">
-        <UserProfile currentView={currentView} onViewChange={onViewChange} />
-      </div>
-    </aside>
-  );
-};
-
-import { useAuth } from '../contexts/AuthContext';
-import { LogOut } from 'lucide-react';
-import { supabase } from '../lib/supabaseClient';
 
 const UserProfile = ({ currentView, onViewChange }: any) => {
   const { user, credits, plan } = useAuth();
@@ -153,3 +97,71 @@ const NavItem = ({ icon, label, active, badge, onClick }: any) => (
     </div>
   </button>
 );
+
+export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange }) => {
+  const { user } = useAuth();
+
+  return (
+    <aside className="fixed bottom-0 left-0 w-full h-16 lg:h-screen lg:w-64 lg:top-0 bg-black border-t lg:border-t-0 lg:border-r border-zinc-800 flex flex-row lg:flex-col transition-all duration-300 z-50">
+      {/* Logo Area - Hidden on Mobile */}
+      <div className="hidden lg:flex p-6 items-center justify-between cursor-pointer" onClick={() => onViewChange('home')}>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-white/5 relative">
+            <Zap className="w-5 h-5 text-black fill-black" />
+          </div>
+          <span className="font-bold text-lg text-white tracking-tight">Ultra</span>
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 flex flex-row lg:flex-col items-center lg:items-stretch justify-around lg:justify-start px-2 lg:px-3 lg:py-6 space-x-2 lg:space-x-0 lg:space-y-2 overflow-visible lg:overflow-y-auto custom-scrollbar">
+        <NavItem
+          icon={<Home size={24} className="lg:w-5 lg:h-5" />}
+          label="Início"
+          active={currentView === 'home'}
+          onClick={() => onViewChange('home')}
+        />
+
+        <NavItem
+          icon={<ScanFace size={24} className="lg:w-5 lg:h-5" />}
+          label="UltraPrompt"
+          active={currentView === 'ultraprompt'}
+          onClick={() => onViewChange('ultraprompt')}
+        />
+
+        <NavItem
+          icon={<Zap size={24} className="lg:w-5 lg:h-5" />}
+          label="UltraGen"
+          active={currentView === 'ultragen'}
+          onClick={() => onViewChange('ultragen')}
+          badge="Novo"
+        />
+
+        <div className="pt-4 mt-4 border-t border-zinc-800 hidden lg:block">
+          <NavItem
+            icon={<User size={24} className="lg:w-5 lg:h-5" />}
+            label="Planos"
+            active={currentView === 'pricing'}
+            onClick={() => onViewChange('pricing')}
+          />
+        </div>
+
+        {user?.email === 'othonbrian@gmail.com' && (
+          <div className="pt-4 mt-4 border-t border-zinc-800 hidden lg:block">
+            <NavItem
+              icon={<Zap size={24} className="lg:w-5 lg:h-5 text-red-500" />}
+              label="Admin"
+              active={currentView === 'admin'}
+              onClick={() => onViewChange('admin')}
+            />
+          </div>
+        )}
+      </nav>
+
+      {/* User Mini Profile */}
+      <div className="hidden lg:block p-4 border-t border-zinc-900">
+        <UserProfile currentView={currentView} onViewChange={onViewChange} />
+      </div>
+    </aside>
+  );
+};

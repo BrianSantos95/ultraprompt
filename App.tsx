@@ -6,18 +6,19 @@ import { UltraGenView } from './components/UltraGenView';
 import { Pricing } from './components/Pricing';
 import Login from './components/auth/Login';
 import { AuthProvider } from './contexts/AuthContext';
+import { AdminDashboard } from './components/admin/AdminDashboard';
 
 type View = 'home' | 'ultraprompt' | 'ultragen' | 'pricing' | 'login';
 
 const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<View>('home');
+  const [currentView, setCurrentView] = useState<View | 'admin'>('home');
 
   // Listen for hash changes to handle redirects
   React.useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.slice(1);
-      if (['home', 'ultraprompt', 'ultragen', 'pricing', 'login'].includes(hash)) {
-        setCurrentView(hash as View);
+      if (['home', 'ultraprompt', 'ultragen', 'pricing', 'login', 'admin'].includes(hash)) {
+        setCurrentView(hash as View | 'admin');
       }
     };
 
@@ -37,6 +38,8 @@ const App: React.FC = () => {
         return <Pricing />;
       case 'login':
         return <Login />;
+      case 'admin':
+        return <AdminDashboard />;
       default:
         return <Home onNavigate={setCurrentView} />;
     }
