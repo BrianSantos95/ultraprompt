@@ -12,10 +12,12 @@ import { supabase } from '../lib/supabaseClient';
 import Login from './auth/Login';
 export const UltraPromptView: React.FC = () => {
     // --- State ---
-    const { user } = useAuth();
+    const { user, hasLifetimePrompt, plan } = useAuth();
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+    const isAuthorized = hasLifetimePrompt || (plan && plan !== 'free');
 
     // Default Settings (High Realism Hardcoded internally, but toggles available regarding focus)
     const [settings, setSettings] = useState<PromptSettings>({
@@ -56,6 +58,11 @@ export const UltraPromptView: React.FC = () => {
     const handleGenerate = async () => {
         if (!imageFile) return;
 
+        if (!isAuthorized) {
+            setError("Você precisa do acesso Vitalício ou de uma Assinatura ativa para usar esta ferramenta.");
+            return;
+        }
+
         setIsAnalyzing(true);
         setError(null);
 
@@ -92,6 +99,45 @@ export const UltraPromptView: React.FC = () => {
         return (
             <div className="flex items-center justify-center h-[calc(100vh-8rem)] w-full animate-in fade-in duration-500">
                 <Login />
+            </div>
+        );
+    }
+
+    if (!isAuthorized) {
+        return (
+            <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)] w-full max-w-2xl mx-auto text-center space-y-8 animate-in zoom-in-95 duration-500">
+                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-2xl shadow-orange-900/40">
+                    <ScanFace size={40} className="text-white" />
+                </div>
+
+                <div className="space-y-4">
+                    <h2 className="text-3xl font-bold text-white tracking-tight">Acesso ao UltraPrompt</h2>
+                    <p className="text-zinc-400 leading-relaxed">
+                        O Agente Anatômico é uma ferramenta exclusiva para membros Vitalícios ou assinantes dos planos Ultra.
+                        Gere prompts com precisão absoluta e preservação de identidade.
+                    </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-4 w-full px-4">
+                    <button
+                        onClick={() => window.location.hash = '#pricing'}
+                        className="flex-1 py-4 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition-all flex items-center justify-center gap-2"
+                    >
+                        <Zap size={18} fill="currentColor" />
+                        Ver Planos & Vitalício
+                    </button>
+                </div>
+
+                <div className="pt-8 grid grid-cols-2 gap-4 text-left">
+                    <div className="p-4 rounded-xl bg-zinc-900/50 border border-zinc-800">
+                        <p className="text-xs font-bold text-orange-500 uppercase mb-1">Vitalício</p>
+                        <p className="text-[10px] text-zinc-500">Pague uma vez, use para sempre.</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-zinc-900/50 border border-zinc-800">
+                        <p className="text-xs font-bold text-orange-500 uppercase mb-1">Combo</p>
+                        <p className="text-[10px] text-zinc-500">Incluso em todas as assinaturas UltraGen.</p>
+                    </div>
+                </div>
             </div>
         );
     }

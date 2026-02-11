@@ -7,6 +7,7 @@ interface AuthContextType {
     loading: boolean;
     credits: number;
     plan: string;
+    hasLifetimePrompt: boolean;
     refreshCredits: () => Promise<void>;
 }
 
@@ -15,6 +16,7 @@ const AuthContext = createContext<AuthContextType>({
     loading: true,
     credits: 0,
     plan: 'free',
+    hasLifetimePrompt: false,
     refreshCredits: async () => { },
 });
 
@@ -23,19 +25,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [loading, setLoading] = useState(true);
     const [credits, setCredits] = useState(0);
     const [plan, setPlan] = useState('free');
+    const [hasLifetimePrompt, setHasLifetimePrompt] = useState(false);
 
     const refreshCredits = async () => {
         if (!user) return;
 
         const { data, error } = await supabase
             .from('profiles')
-            .select('credits, subscription_tier')
+            .select('credits, subscription_tier, has_lifetime_prompt')
             .eq('id', user.id)
             .single();
 
         if (data && !error) {
             setCredits(data.credits);
             setPlan(data.subscription_tier || 'free');
+            setHasLifetimePrompt(!!data.has_lifetime_prompt);
         }
     };
 
@@ -65,7 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     return (
-        <AuthContext.Provider value={{ user, loading, credits, plan, refreshCredits }}>
+        <AuthContext.Provider value={{ user, loading, credits, plan, hasLifetimePrompt, refreshCredits }}>
             {children}
         </AuthContext.Provider>
     );
