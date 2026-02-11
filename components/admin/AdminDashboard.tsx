@@ -132,7 +132,7 @@ const GrowthChart = ({ data }: { data: Profile[] }) => {
 };
 
 export const AdminDashboard: React.FC = () => {
-    const { user } = useAuth();
+    const { user, refreshCredits } = useAuth();
     const [profiles, setProfiles] = useState<Profile[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -249,6 +249,11 @@ export const AdminDashboard: React.FC = () => {
             setProfiles(updatedProfiles);
             calculateStats(updatedProfiles);
             setEditingUser(null);
+
+            // If admin edited themselves, refresh local auth state immediately
+            if (user && editingUser.id === user.id) {
+                await refreshCredits(user.id);
+            }
         } catch (err: any) {
             alert('Erro ao atualizar usuário: ' + err.message);
         }

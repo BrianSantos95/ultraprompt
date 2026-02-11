@@ -74,31 +74,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return () => subscription.unsubscribe();
     }, []);
 
-    // Realtime Updates for Credits/Plan
-    useEffect(() => {
-        if (!user) return;
-
-        const channel = supabase
-            .channel(`profile-updates-${user.id}`)
-            .on(
-                'postgres_changes',
-                {
-                    event: 'UPDATE',
-                    schema: 'public',
-                    table: 'profiles',
-                    filter: `id=eq.${user.id}`,
-                },
-                (payload) => {
-                    console.log('Profile updated realtime:', payload);
-                    refreshCredits(user.id);
-                }
-            )
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [user]);
+    // Realtime subscription removed to prevent app freeze.
+    // We will rely on manual updates or simpler polling if needed.
 
     return (
         <AuthContext.Provider value={{ user, loading, credits, plan, hasLifetimePrompt, refreshCredits }}>
