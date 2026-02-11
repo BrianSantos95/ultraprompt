@@ -10,6 +10,7 @@ import { analyzeSpecialistIdentity, generateImageFromText } from '../services/ge
 import { ImageReference, AspectRatio } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
+import Login from './auth/Login';
 
 export const UltraGenView: React.FC = () => {
     // --- State Management ---
@@ -306,6 +307,14 @@ export const UltraGenView: React.FC = () => {
         }
     };
 
+
+    if (!user) {
+        return (
+            <div className="flex items-center justify-center h-[calc(100vh-8rem)] animate-in fade-in duration-500">
+                <Login />
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col xl:flex-row gap-6 h-[calc(100vh-8rem)] min-h-[800px] animate-in fade-in duration-500 text-zinc-100">

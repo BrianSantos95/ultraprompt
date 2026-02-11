@@ -9,6 +9,7 @@ import { PromptSettings, AnalysisState, Language, DetailLevel } from '../types';
 
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
+import Login from './auth/Login';
 
 export const UltraPromptView: React.FC = () => {
     // --- State ---
@@ -54,14 +55,6 @@ export const UltraPromptView: React.FC = () => {
     };
 
     const handleGenerate = async () => {
-        if (!user) {
-            setError("Erro: Você precisa estar logado para gerar prompts.");
-            return;
-        }
-        if (credits <= 0) {
-            setError("Erro: Créditos insuficientes. Faça um upgrade!");
-            return;
-        }
         if (!imageFile) return;
 
         setIsAnalyzing(true);
@@ -74,16 +67,6 @@ export const UltraPromptView: React.FC = () => {
 
             if (result && result.prompt) {
                 setAnalysisResult(result.prompt);
-
-                // Deduct Credit
-                const { error: creditError } = await supabase
-                    .from('profiles')
-                    .update({ credits: credits - 1 })
-                    .eq('id', user.id);
-
-                if (!creditError) {
-                    refreshCredits();
-                }
             } else {
                 throw new Error("No prompt generated.");
             }
@@ -105,6 +88,14 @@ export const UltraPromptView: React.FC = () => {
     const toggleSetting = (key: keyof PromptSettings) => {
         setSettings(prev => ({ ...prev, [key]: !prev[key] }));
     };
+
+    if (!user) {
+        return (
+            <div className="flex items-center justify-center h-[calc(100vh-8rem)] animate-in fade-in duration-500">
+                <Login />
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col xl:flex-row gap-6 h-auto xl:h-[calc(100vh-8rem)] min-h-[800px] animate-in fade-in duration-500 text-zinc-100">
