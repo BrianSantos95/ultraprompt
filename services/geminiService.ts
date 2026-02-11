@@ -3,17 +3,60 @@ import { PromptSettings, PromptResult, Language, DetailLevel } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
-const fileToBase64 = (file: File): Promise<string> => {
+const processImageForGemini = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onload = () => {
-      const result = reader.result as string;
-      const base64 = result.split(',')[1];
-      resolve(base64);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        const MAX_SIZE = 1536;
+
+        if (width > MAX_SIZE || height > MAX_SIZE) {
+          if (width > height) {
+            height *= MAX_SIZE / width;
+            width = MAX_SIZE;
+          } else {
+            width *= MAX_SIZE / height;
+            height = MAX_SIZE;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          resolve(dataUrl.split(',')[1]);
+        } else {
+          reject(new Error("Failed to get canvas context"));
+        }
+      };
+      img.onerror = (err) => reject(err);
     };
     reader.onerror = (error) => reject(error);
   });
+};
+
+const generateWithRetry = async <T>(operation: () => Promise<T>, retries = 2): Promise<T> => {
+  let lastError;
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await operation();
+    } catch (err: any) {
+      lastError = err;
+      console.warn(`Attempt ${i + 1} failed:`, err);
+      // If it's a 500 or network error, wait and retry. If it's a 400 (client error), maybe don't retry? 
+      // For now, we retry everything except explicit refusals if we could detect them.
+      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // Exponential-ish backoff
+    }
+  }
+  throw lastError;
 };
 
 export const generatePromptFromImage = async (
@@ -21,7 +64,7 @@ export const generatePromptFromImage = async (
   settings: PromptSettings
 ): Promise<PromptResult> => {
   try {
-    const base64Data = await fileToBase64(imageFile);
+    const base64Data = await processImageForGemini(imageFile);
 
     const languageInstruction = settings.language === Language.PT
       ? "OUTPUT LANGUAGE: PORTUGUESE (BR)."
@@ -115,33 +158,35 @@ export const generatePromptFromImage = async (
       required: ["prompt", "negativePrompt", "bodyDetected", "poseType"],
     };
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3-pro-preview",
-      contents: {
-        parts: [
-          { inlineData: { mimeType: imageFile.type, data: base64Data } },
-          { text: systemPrompt }
-        ]
-      },
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: responseSchema,
+    return await generateWithRetry(async () => {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.0-flash",
+        contents: {
+          parts: [
+            { inlineData: { mimeType: "image/jpeg", data: base64Data } },
+            { text: systemPrompt }
+          ]
+        },
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: responseSchema,
+        }
+      });
+
+      const text = response.text;
+      if (!text) throw new Error("No response from AI");
+
+      const json = JSON.parse(text);
+
+      if (json.bodyDetected === false) {
+        throw new Error("Erro: corpo ou pose não detectados com precisão suficiente.");
       }
+
+      return {
+        prompt: json.prompt,
+        negativePrompt: json.negativePrompt
+      };
     });
-
-    const text = response.text;
-    if (!text) throw new Error("No response from AI");
-
-    const json = JSON.parse(text);
-
-    if (json.bodyDetected === false) {
-      throw new Error("Erro: corpo ou pose não detectados com precisão suficiente.");
-    }
-
-    return {
-      prompt: json.prompt,
-      negativePrompt: json.negativePrompt
-    };
 
   } catch (error: any) {
     console.error("Error generating prompt:", error);
@@ -155,11 +200,13 @@ export const analyzeSpecialistIdentity = async (
 ): Promise<string> => {
   try {
     const validFiles = imageFiles.slice(0, 6); // Limit to 6 as requested
+
+    // Process all images
     const imageParts = await Promise.all(
       validFiles.map(async (file) => ({
         inlineData: {
-          mimeType: file.type,
-          data: await fileToBase64(file),
+          mimeType: "image/jpeg",
+          data: await processImageForGemini(file),
         },
       }))
     );
@@ -179,17 +226,19 @@ export const analyzeSpecialistIdentity = async (
       Return ONLY a single, highly detailed paragraph starting with: "A photo of [Age] [Gender] [Ethnicity], [Detailed Face Description], [Body/Hair Details]..."
     `;
 
-    const response = await ai.models.generateContent({
-      model: "nano-banana-pro-preview",
-      contents: {
-        parts: [...imageParts, { text: systemPrompt }]
-      }
+    return await generateWithRetry(async () => {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.0-flash",
+        contents: {
+          parts: [...imageParts, { text: systemPrompt }]
+        }
+      });
+
+      const text = response.text;
+      if (!text) throw new Error("No response from AI");
+
+      return text.trim();
     });
-
-    const text = response.text;
-    if (!text) throw new Error("No response from AI");
-
-    return text.trim();
 
   } catch (error: any) {
     console.error("Error analyzing specialist identity:", error);
@@ -199,79 +248,44 @@ export const analyzeSpecialistIdentity = async (
 
 
 export const generateImageFromText = async (prompt: string, options?: { aspectRatio?: string, referenceImages?: Array<{ data: string, mimeType: string }> }): Promise<string> => {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
-  // 1. Google Gemini 3 Pro (Nano Banana Pro 3)
-  // Endpoint: generateContent (not predict)
-  // Model: gemini-3-pro-image-preview
-  if (apiKey && !apiKey.includes('PLACEHOLDER')) {
-    try {
-      const model = 'gemini-3-pro-image-preview';
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  // Fallback to Pollinations.ai for image generation (Free, robust)
+  // Map Aspect Ratio to Width/Height
+  let width = 1024;
+  let height = 1024;
 
-      const parts: any[] = [{ text: prompt }];
-
-      // Add Reference Images if provided (Multimodal)
-      if (options?.referenceImages && options.referenceImages.length > 0) {
-        options.referenceImages.forEach(img => {
-          parts.push({
-            inlineData: {
-              mimeType: img.mimeType,
-              data: img.data
-            }
-          });
-        });
-      }
-
-      const payload: any = {
-        contents: [
-          {
-            parts: parts
-          }
-        ]
-      };
-
-      // Add Aspect Ratio if provided
-      if (options?.aspectRatio) {
-        payload.generationConfig = {
-          imageConfig: {
-            aspectRatio: options.aspectRatio
-          }
-        }
-      }
-
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.warn(`Gemini 3 Image Gen failed with status: ${response.status}`, errorData);
-        throw new Error(`Erro na API Google: ${errorData.error?.message || response.statusText}`);
-      }
-
-      const data = await response.json();
-
-      // Parse Gemini generateContent response for image
-      // Typically: candidates[0].content.parts[0].inlineData.data
-      const part = data.candidates?.[0]?.content?.parts?.[0];
-
-      if (part?.inlineData?.data) {
-        console.log(`Generated using Google Model: ${model}`);
-        const mimeType = part.inlineData.mimeType || "image/jpeg";
-        return `data:${mimeType};base64,${part.inlineData.data}`;
-      } else {
-        console.warn("No inlineData found in Gemini response", data);
-        throw new Error("Formato de resposta inesperado da API do Google.");
-      }
-
-    } catch (e: any) {
-      console.error("Google API execution error:", e);
-      throw new Error(e.message || "Erro fatal na geração de imagem (Google API).");
+  if (options?.aspectRatio) {
+    switch (options.aspectRatio) {
+      case '16:9': width = 1280; height = 720; break;
+      case '9:16': width = 720; height = 1280; break;
+      case '4:5': width = 816; height = 1024; break;
+      case '1:1': default: width = 1024; height = 1024; break;
     }
   }
 
-  throw new Error("Chave de API inválida ou não configurada.");
+  // Enhance prompt for Pollinations
+  const enhancedPrompt = encodeURIComponent(`${prompt} --quality 4 --stylize 1000`);
+  const seed = Math.floor(Math.random() * 1000000);
+
+  // Construct URL
+  const imageUrl = `https://image.pollinations.ai/prompt/${enhancedPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true`;
+
+  // Verify if image is accessible (optional, but good practice)
+  try {
+    const response = await fetch(imageUrl);
+    if (!response.ok) throw new Error("Falha ao gerar imagem no servidor externo.");
+
+    // Convert to blob -> base64 to ensure it displays correctly and can be downloaded easily
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+
+  } catch (e: any) {
+    console.error("Image Gen Error:", e);
+    throw new Error("Não foi possível gerar a imagem. Tente novamente.");
+  }
 };

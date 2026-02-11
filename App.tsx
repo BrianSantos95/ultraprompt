@@ -30,9 +30,9 @@ const App: React.FC = () => {
       case 'home':
         return <Home onNavigate={setCurrentView} />;
       case 'ultraprompt':
-        return <UltraPromptView />;
+        return <UltraPromptView onNavigate={setCurrentView} />;
       case 'ultragen':
-        return <UltraGenView />;
+        return <UltraGenView onNavigate={setCurrentView} />;
       case 'pricing':
         return <Pricing />;
       case 'login':
