@@ -40,7 +40,7 @@ const Login: React.FC = () => {
 
     return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-zinc-100 p-4">
-            <div className="w-full max-w-md bg-zinc-900/50 border border-zinc-800 rounded-2xl p-8 space-y-6">
+            <div className="w-full max-w-xl bg-zinc-900/50 border border-zinc-800 rounded-2xl p-8 space-y-6 animate-in zoom-in-95 duration-300">
                 <div className="text-center space-y-2">
                     <h1 className="text-2xl font-bold">{isSignUp ? 'Criar Conta' : 'Entrar no UltraPrompt'}</h1>
                     <p className="text-zinc-400 text-sm">
