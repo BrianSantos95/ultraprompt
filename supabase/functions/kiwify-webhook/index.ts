@@ -8,6 +8,14 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 serve(async (req) => {
     try {
+        const url = new URL(req.url);
+        const signature = url.searchParams.get("signature");
+        const KIWIFY_TOKEN = "p2937lzrrvk";
+
+        if (signature !== KIWIFY_TOKEN) {
+            return new Response("Unauthorized", { status: 401 });
+        }
+
         const payload = await req.json();
         console.log("Kiwify Webhook Payload:", payload);
 
@@ -23,25 +31,25 @@ serve(async (req) => {
             return new Response("No customer email", { status: 400 });
         }
 
-        // 2. Map Product ID to Action
+        // 2. Map Product ID or Plan Name to Action
         let updateData: any = {};
 
-        // PRODUCT IDS
+        // PRODUCT ID for Lifetime
         const ID_VITALICIO = "3IrPND2";
-        const ID_START = "s66xees";
-        const ID_PRO = "CBJPnPX";
-        const ID_MAX = "FV4KsAb";
+
+        // NAMES for Subscription Plans (Kiwify sends plan info in the payload)
+        const planName = payload.plan?.name;
 
         if (product_id === ID_VITALICIO) {
             updateData = { has_lifetime_prompt: true };
-        } else if (product_id === ID_START) {
+        } else if (planName === "Ultra Start") {
             updateData = { subscription_tier: "Ultra Start", credits: 20 };
-        } else if (product_id === ID_PRO) {
+        } else if (planName === "Ultra Pro") {
             updateData = { subscription_tier: "Ultra Pro", credits: 70 };
-        } else if (product_id === ID_MAX) {
+        } else if (planName === "Ultra Max") {
             updateData = { subscription_tier: "Ultra Max", credits: 180 };
         } else {
-            return new Response("Unknown product", { status: 200 });
+            return new Response("Unknown product or plan", { status: 200 });
         }
 
         // 3. Update Profile in Database
