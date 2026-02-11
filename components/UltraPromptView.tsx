@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
     Upload, Zap, Copy, Check, Sparkles,
     Aperture, Sun, ScanFace, Palette, Camera,
@@ -12,10 +12,16 @@ import { supabase } from '../lib/supabaseClient';
 import Login from './auth/Login';
 export const UltraPromptView: React.FC = () => {
     // --- State ---
-    const { user, hasLifetimePrompt, plan } = useAuth();
+    const { user, hasLifetimePrompt, plan, refreshCredits } = useAuth();
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+    useEffect(() => {
+        if (user) {
+            refreshCredits();
+        }
+    }, [user, refreshCredits]);
 
     const isAuthorized = hasLifetimePrompt || (plan && plan !== 'free');
 

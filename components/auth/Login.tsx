@@ -30,6 +30,8 @@ const Login: React.FC = () => {
                     password,
                 });
                 if (error) throw error;
+                // Force a reload to ensure all contexts are updated properly
+                window.location.reload();
             }
         } catch (error: any) {
             setError(error.message);
