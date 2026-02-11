@@ -22,8 +22,8 @@ export const Home: React.FC<HomeProps> = ({ onNavigate }) => {
             {/* Hero Section */}
             <div className="text-center space-y-6">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-[10px] font-medium text-zinc-400">
-                    <Sparkles size={10} className="text-white" />
-                    <span>Versão 2.0 Disponível</span>
+                    <Sparkles size={10} className="text-orange-500" />
+                    <span className="bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent font-bold">Versão 2.0 Disponível</span>
                 </div>
 
                 <h1 className="text-4xl md:text-6xl font-bold text-white tracking-tighter">
