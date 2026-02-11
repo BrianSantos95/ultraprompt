@@ -85,10 +85,10 @@ export const UltraPromptView: React.FC = () => {
     };
 
     return (
-        <div className="flex flex-col xl:flex-row gap-6 h-[calc(100vh-8rem)] min-h-[800px] animate-in fade-in duration-500 text-zinc-100">
+        <div className="flex flex-col xl:flex-row gap-6 h-auto xl:h-[calc(100vh-8rem)] min-h-[800px] animate-in fade-in duration-500 text-zinc-100">
 
             {/* --- LEFT SIDEBAR: CONTROLS --- */}
-            <div className="w-full xl:w-[480px] flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar pb-20">
+            <div className="w-full xl:w-[480px] flex flex-col gap-4 xl:overflow-y-auto pr-2 custom-scrollbar pb-20">
 
                 {/* Header Description (Restored Here) */}
                 <div className="mb-4">
