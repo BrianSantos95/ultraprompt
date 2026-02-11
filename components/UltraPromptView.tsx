@@ -91,7 +91,7 @@ export const UltraPromptView: React.FC = () => {
 
     if (!user) {
         return (
-            <div className="flex items-center justify-center h-[calc(100vh-8rem)] animate-in fade-in duration-500">
+            <div className="flex items-center justify-center h-[calc(100vh-8rem)] w-full animate-in fade-in duration-500">
                 <Login />
             </div>
         );
