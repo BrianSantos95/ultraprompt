@@ -7,8 +7,12 @@ import {
 import { generatePromptFromImage } from '../services/geminiService';
 import { PromptSettings, AnalysisState, Language, DetailLevel } from '../types';
 
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabaseClient';
+
 export const UltraPromptView: React.FC = () => {
     // --- State ---
+    const { user, credits, refreshCredits } = useAuth();
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -50,6 +54,14 @@ export const UltraPromptView: React.FC = () => {
     };
 
     const handleGenerate = async () => {
+        if (!user) {
+            setError("Erro: Você precisa estar logado para gerar prompts.");
+            return;
+        }
+        if (credits <= 0) {
+            setError("Erro: Créditos insuficientes. Faça um upgrade!");
+            return;
+        }
         if (!imageFile) return;
 
         setIsAnalyzing(true);
@@ -62,6 +74,16 @@ export const UltraPromptView: React.FC = () => {
 
             if (result && result.prompt) {
                 setAnalysisResult(result.prompt);
+
+                // Deduct Credit
+                const { error: creditError } = await supabase
+                    .from('profiles')
+                    .update({ credits: credits - 1 })
+                    .eq('id', user.id);
+
+                if (!creditError) {
+                    refreshCredits();
+                }
             } else {
                 throw new Error("No prompt generated.");
             }

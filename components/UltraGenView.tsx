@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { analyzeSpecialistIdentity, generateImageFromText } from '../services/geminiService';
 import { ImageReference, AspectRatio } from '../types';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabaseClient';
 
 export const UltraGenView: React.FC = () => {
     // --- State Management ---
@@ -127,7 +129,19 @@ export const UltraGenView: React.FC = () => {
         });
     };
 
+    // --- Auth & Credits ---
+    const { user, credits, refreshCredits } = useAuth();
+
     const handleGenerate = async (isEdit: boolean) => {
+        if (!user) {
+            setStatusMessage("Erro: Você precisa estar logado para gerar imagens.");
+            return;
+        }
+        if (credits <= 0) {
+            setStatusMessage("Erro: Créditos insuficientes. Faça um upgrade!");
+            return;
+        }
+
         if (!prompt && activeMode === 'prompt') return;
         if (!isEdit && activeMode === 'ultra' && !niche) return;
         if (isEdit) {
@@ -257,7 +271,18 @@ export const UltraGenView: React.FC = () => {
             });
 
             let finalUrl = baseUrl;
-            // Note: Google return base64 data:image..., so it works directly.
+
+            // Deduct Credit
+            if (user) {
+                const { error: creditError } = await supabase
+                    .from('profiles')
+                    .update({ credits: credits - 1 })
+                    .eq('id', user.id);
+
+                if (!creditError) {
+                    refreshCredits(); // Update UI
+                }
+            }
 
             // Pre-load
             const img = new Image();
