@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -12,7 +12,12 @@ import {
     CheckCircle,
     TrendingUp,
     Activity,
-    Zap
+    Zap,
+    Edit2,
+    Ban,
+    X,
+    Save,
+    BarChart3
 } from 'lucide-react';
 
 interface Profile {
@@ -22,6 +27,7 @@ interface Profile {
     credits: number;
     has_lifetime_prompt: boolean;
     created_at: string;
+    is_banned?: boolean;
 }
 
 interface DashboardStats {
@@ -76,6 +82,55 @@ const PlanBadge = ({ plan }: { plan: string | null }) => {
     );
 };
 
+const GrowthChart = ({ data }: { data: Profile[] }) => {
+    const chartData = useMemo(() => {
+        const grouped = data.reduce((acc, user) => {
+            const date = new Date(user.created_at);
+            const key = date.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }); // e.g., 'fev/25'
+            const sortKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+            if (!acc[sortKey]) {
+                acc[sortKey] = { label: key, count: 0 };
+            }
+            acc[sortKey].count++;
+            return acc;
+        }, {} as Record<string, { label: string; count: number }>);
+
+        // Sort by date (keys are YYYY-MM)
+        return Object.keys(grouped).sort().map(key => grouped[key]);
+    }, [data]);
+
+    if (chartData.length === 0) return null;
+
+    const maxCount = Math.max(...chartData.map(d => d.count));
+
+    return (
+        <div className="bg-zinc-900/40 border border-zinc-800 p-6 rounded-2xl mt-6">
+            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                <BarChart3 className="text-zinc-400" size={20} />
+                Crescimento de Usuários por Mês
+            </h3>
+            <div className="flex items-end gap-2 h-40 w-full overflow-x-auto pb-2 custom-scrollbar">
+                {chartData.map((item, index) => (
+                    <div key={index} className="flex-1 min-w-[60px] flex flex-col items-center gap-2 group relative">
+                        {/* Tooltip */}
+                        <div className="absolute -top-8 bg-zinc-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                            {item.count} usuários
+                        </div>
+                        {/* Bar */}
+                        <div
+                            className="w-full bg-zinc-800 hover:bg-orange-500/50 rounded-t transition-colors relative group-hover:shadow-[0_0_15px_rgba(249,115,22,0.3)]"
+                            style={{ height: `${(item.count / maxCount) * 100}%` }}
+                        ></div>
+                        {/* Label */}
+                        <span className="text-[10px] text-zinc-500 font-medium whitespace-nowrap uppercase">{item.label}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
 export const AdminDashboard: React.FC = () => {
     const { user } = useAuth();
     const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -83,6 +138,13 @@ export const AdminDashboard: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterPlan, setFilterPlan] = useState<string>('all');
+
+    // Action States
+    const [editingUser, setEditingUser] = useState<Profile | null>(null);
+    const [banningUser, setBanningUser] = useState<Profile | null>(null);
+    const [banConfirmation, setBanConfirmation] = useState('');
+    const [editForm, setEditForm] = useState({ plan: 'free', credits: 0 });
+
     const [stats, setStats] = useState<DashboardStats>({
         totalUsers: 0,
         totalMrr: 0,
@@ -106,8 +168,6 @@ export const AdminDashboard: React.FC = () => {
         setLoading(true);
         setError(null);
         try {
-            // Fetch all profiles
-            // NOTE: This requires an RLS policy that allows the admin email to SELECT * from profiles
             const { data, error } = await supabase
                 .from('profiles')
                 .select('*')
@@ -134,12 +194,8 @@ export const AdminDashboard: React.FC = () => {
         const distribution = { start: 0, pro: 0, max: 0, free: 0 };
 
         data.forEach(user => {
-            // Lifetime Revenue
-            if (user.has_lifetime_prompt) {
-                lifetimeRevenue += 37.00;
-            }
+            if (user.has_lifetime_prompt) lifetimeRevenue += 37.00;
 
-            // MRR & Subscription Counts
             switch (user.subscription_tier) {
                 case 'Ultra Start':
                     mrr += 39.90;
@@ -170,6 +226,64 @@ export const AdminDashboard: React.FC = () => {
         });
     };
 
+    const handleUpdateUser = async () => {
+        if (!editingUser) return;
+
+        try {
+            const { error } = await supabase
+                .from('profiles')
+                .update({
+                    subscription_tier: editForm.plan,
+                    credits: editForm.credits
+                })
+                .eq('id', editingUser.id);
+
+            if (error) throw error;
+
+            // Update local state
+            const updatedProfiles = profiles.map(p =>
+                p.id === editingUser.id
+                    ? { ...p, subscription_tier: editForm.plan, credits: editForm.credits }
+                    : p
+            );
+            setProfiles(updatedProfiles);
+            calculateStats(updatedProfiles);
+            setEditingUser(null);
+        } catch (err: any) {
+            alert('Erro ao atualizar usuário: ' + err.message);
+        }
+    };
+
+    const handleBanUser = async () => {
+        if (!banningUser || banConfirmation.toLowerCase() !== 'banir') return;
+
+        try {
+            const { error } = await supabase
+                .from('profiles')
+                .update({ is_banned: true })
+                .eq('id', banningUser.id);
+
+            if (error) throw error;
+
+            const updatedProfiles = profiles.map(p =>
+                p.id === banningUser.id ? { ...p, is_banned: true } : p
+            );
+            setProfiles(updatedProfiles);
+            setBanningUser(null);
+            setBanConfirmation('');
+        } catch (err: any) {
+            alert('Erro ao banir usuário. Verifique se a coluna "is_banned" existe no banco (SQL). ' + err.message);
+        }
+    };
+
+    const openEditModal = (profile: Profile) => {
+        setEditingUser(profile);
+        setEditForm({
+            plan: profile.subscription_tier || 'free',
+            credits: profile.credits
+        });
+    };
+
     const filteredUsers = profiles.filter(profile => {
         const matchesSearch = (profile.email || '').toLowerCase().includes(searchTerm.toLowerCase());
         const matchesFilter = filterPlan === 'all' ||
@@ -177,7 +291,8 @@ export const AdminDashboard: React.FC = () => {
             (filterPlan === 'Ultra Start' && profile.subscription_tier === 'Ultra Start') ||
             (filterPlan === 'Ultra Pro' && profile.subscription_tier === 'Ultra Pro') ||
             (filterPlan === 'Ultra Max' && profile.subscription_tier === 'Ultra Max') ||
-            (filterPlan === 'free' && (!profile.subscription_tier || profile.subscription_tier === 'free'));
+            (filterPlan === 'free' && (!profile.subscription_tier || profile.subscription_tier === 'free')) ||
+            (filterPlan === 'banned' && profile.is_banned);
 
         return matchesSearch && matchesFilter;
     });
@@ -199,7 +314,7 @@ export const AdminDashboard: React.FC = () => {
     }
 
     return (
-        <div className="w-full max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+        <div className="w-full max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
 
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -208,7 +323,7 @@ export const AdminDashboard: React.FC = () => {
                         <LayoutDashboard className="text-orange-500" />
                         Painel Administrativo
                     </h1>
-                    <p className="text-zinc-400 mt-1">Visão geral de usuários, receitas e métricas do sistema.</p>
+                    <p className="text-zinc-400 mt-1">Gerenciamento completo de usuários e assinaturas.</p>
                 </div>
                 <button
                     onClick={fetchData}
@@ -224,9 +339,6 @@ export const AdminDashboard: React.FC = () => {
                     <div className="flex-1">
                         <p className="font-bold">Erro de Acesso aos Dados</p>
                         <p className="text-sm opacity-90">{error}</p>
-                        <p className="text-xs mt-2 text-red-300">
-                            Dica: Execute o comando SQL para liberar acesso ao seu email no Supabase.
-                        </p>
                     </div>
                 </div>
             )}
@@ -258,6 +370,9 @@ export const AdminDashboard: React.FC = () => {
                 />
             </div>
 
+            {/* Chart */}
+            <GrowthChart data={profiles} />
+
             {/* Controls & Filters */}
             <div className="bg-zinc-900/40 border border-zinc-800 rounded-2xl p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
                 <div className="relative w-full md:w-96">
@@ -284,6 +399,7 @@ export const AdminDashboard: React.FC = () => {
                         <option value="Ultra Max">Ultra Max</option>
                         <option value="lifetime">Vitalício</option>
                         <option value="free">Gratuito</option>
+                        <option value="banned">Banidos</option>
                     </select>
 
                     <button className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl text-sm font-medium transition-colors ml-auto flex items-center gap-2">
@@ -304,27 +420,31 @@ export const AdminDashboard: React.FC = () => {
                                 <th className="px-6 py-4 text-center">Usados</th>
                                 <th className="px-6 py-4 text-center">Vitalício</th>
                                 <th className="px-6 py-4 text-right">Data Entrada</th>
+                                <th className="px-6 py-4 text-center">Ações</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-800">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center text-zinc-500">
+                                    <td colSpan={7} className="px-6 py-12 text-center text-zinc-500">
                                         <div className="flex justify-center mb-2"><Activity className="animate-spin text-orange-500" /></div>
                                         Carregando dados...
                                     </td>
                                 </tr>
                             ) : filteredUsers.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center text-zinc-500">
-                                        Nenhum usuário encontrado com os filtros atuais.
+                                    <td colSpan={7} className="px-6 py-12 text-center text-zinc-500">
+                                        Nenhum usuário encontrado.
                                     </td>
                                 </tr>
                             ) : (
                                 filteredUsers.map((profile) => (
-                                    <tr key={profile.id} className="hover:bg-zinc-800/30 transition-colors">
+                                    <tr key={profile.id} className={`hover:bg-zinc-800/30 transition-colors ${profile.is_banned ? 'opacity-50 grayscale' : ''}`}>
                                         <td className="px-6 py-4">
-                                            <div className="font-medium text-white">{profile.email}</div>
+                                            <div className="font-medium text-white flex items-center gap-2">
+                                                {profile.email}
+                                                {profile.is_banned && <span className="px-1.5 py-0.5 bg-red-900/50 text-red-400 text-[10px] rounded uppercase font-bold">Banido</span>}
+                                            </div>
                                             <div className="text-xs text-zinc-500 font-mono">{profile.id}</div>
                                         </td>
                                         <td className="px-6 py-4">
@@ -339,7 +459,6 @@ export const AdminDashboard: React.FC = () => {
                                                     'Ultra Start': 20, 'Ultra Pro': 70, 'Ultra Max': 180, 'free': 20
                                                 };
                                                 const limit = limits[profile.subscription_tier || 'free'] || 20;
-                                                // If credits > limit (e.g. bonus), show 0 used
                                                 return Math.max(0, limit - profile.credits);
                                             })()}
                                         </td>
@@ -353,6 +472,24 @@ export const AdminDashboard: React.FC = () => {
                                         <td className="px-6 py-4 text-right text-zinc-500">
                                             {new Date(profile.created_at).toLocaleDateString('pt-BR')}
                                         </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <button
+                                                    onClick={() => openEditModal(profile)}
+                                                    className="p-1.5 hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-white transition-colors" title="Editar"
+                                                >
+                                                    <Edit2 size={16} />
+                                                </button>
+                                                {!profile.is_banned && (
+                                                    <button
+                                                        onClick={() => setBanningUser(profile)}
+                                                        className="p-1.5 hover:bg-red-900/30 rounded-lg text-zinc-400 hover:text-red-500 transition-colors" title="Banir"
+                                                    >
+                                                        <Ban size={16} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
                                     </tr>
                                 ))
                             )}
@@ -364,6 +501,94 @@ export const AdminDashboard: React.FC = () => {
                     <span>Atualizado em: {new Date().toLocaleTimeString()}</span>
                 </div>
             </div>
+
+            {/* Edit User Modal */}
+            {editingUser && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full max-w-md space-y-4 animate-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-bold text-white">Editar Usuário</h3>
+                            <button onClick={() => setEditingUser(null)} className="text-zinc-500 hover:text-white"><X size={20} /></button>
+                        </div>
+                        <div className="p-3 bg-zinc-800/50 rounded-xl border border-zinc-700/50 text-sm text-zinc-300">
+                            {editingUser.email}
+                        </div>
+
+                        <div className="space-y-3">
+                            <div>
+                                <label className="block text-xs font-medium text-zinc-400 mb-1">Plano de Assinatura</label>
+                                <select
+                                    className="w-full bg-black border border-zinc-700 rounded-xl px-3 py-2 text-white focus:border-orange-500 outline-none"
+                                    value={editForm.plan}
+                                    onChange={e => setEditForm({ ...editForm, plan: e.target.value })}
+                                >
+                                    <option value="free">Gratuito</option>
+                                    <option value="Ultra Start">Ultra Start</option>
+                                    <option value="Ultra Pro">Ultra Pro</option>
+                                    <option value="Ultra Max">Ultra Max</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-zinc-400 mb-1">Definir Créditos</label>
+                                <input
+                                    type="number"
+                                    className="w-full bg-black border border-zinc-700 rounded-xl px-3 py-2 text-white focus:border-orange-500 outline-none"
+                                    value={editForm.credits}
+                                    onChange={e => setEditForm({ ...editForm, credits: parseInt(e.target.value) || 0 })}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 pt-2">
+                            <button onClick={() => setEditingUser(null)} className="flex-1 px-4 py-2 rounded-xl bg-zinc-800 text-white font-medium hover:bg-zinc-700 transition-colors">Cancelar</button>
+                            <button onClick={handleUpdateUser} className="flex-1 px-4 py-2 rounded-xl bg-green-600 text-white font-medium hover:bg-green-500 transition-colors flex items-center justify-center gap-2">
+                                <Save size={18} /> Salvar Alterações
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Ban User Modal */}
+            {banningUser && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-zinc-900 border border-red-900/30 rounded-2xl p-6 w-full max-w-md space-y-4 animate-in zoom-in-95 duration-200 shadow-2xl shadow-red-900/20">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-bold text-red-500 flex items-center gap-2">
+                                <Ban size={20} /> Banir Usuário
+                            </h3>
+                            <button onClick={() => setBanningUser(null)} className="text-zinc-500 hover:text-white"><X size={20} /></button>
+                        </div>
+
+                        <p className="text-zinc-300 text-sm">
+                            Você está prestes a banir <span className="font-bold text-white">{banningUser.email}</span>.
+                            Isso impedirá o acesso à conta.
+                        </p>
+
+                        <div className="space-y-2">
+                            <label className="block text-xs font-medium text-zinc-500">Para confirmar, digite <strong className="text-white">banir</strong> abaixo:</label>
+                            <input
+                                type="text"
+                                className="w-full bg-black border border-red-900/50 rounded-xl px-3 py-2 text-white focus:border-red-500 outline-none placeholder-zinc-700"
+                                placeholder="banir"
+                                value={banConfirmation}
+                                onChange={e => setBanConfirmation(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="flex gap-3 pt-2">
+                            <button onClick={() => setBanningUser(null)} className="flex-1 px-4 py-2 rounded-xl bg-zinc-800 text-white font-medium hover:bg-zinc-700 transition-colors">Cancelar</button>
+                            <button
+                                onClick={handleBanUser}
+                                disabled={banConfirmation.toLowerCase() !== 'banir'}
+                                className="flex-1 px-4 py-2 rounded-xl bg-red-600 disabled:bg-red-900/50 disabled:text-red-400 text-white font-medium hover:bg-red-500 transition-colors disabled:cursor-not-allowed"
+                            >
+                                Confirmar Banimento
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
         </div>
     );
