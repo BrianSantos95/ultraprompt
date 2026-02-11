@@ -27,37 +27,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [plan, setPlan] = useState('free');
     const [hasLifetimePrompt, setHasLifetimePrompt] = useState(false);
 
-    const refreshCredits = async () => {
-        if (!user) return;
+    const refreshCredits = async (userIdStr?: string) => {
+        const targetId = userIdStr || user?.id;
+        if (!targetId) return;
 
         const { data, error } = await supabase
             .from('profiles')
-            .select('credits, subscription_tier, has_lifetime_prompt')
-            .eq('id', user.id)
+            .select('credits, subscription_tier, has_lifetime_prompt, is_banned')
+            .eq('id', targetId)
             .single();
 
         if (data && !error) {
             setCredits(data.credits);
             setPlan(data.subscription_tier || 'free');
             setHasLifetimePrompt(!!data.has_lifetime_prompt);
+            // Optional: Block login if banned? 
+            if (data.is_banned) {
+                // For now just log, strict blocking would happen in RLS or middleware
+                console.warn("User is banned");
+            }
         }
     };
 
     useEffect(() => {
-        // Check initial session
+        // Initial Session Check
         supabase.auth.getSession().then(({ data: { session } }) => {
             setUser(session?.user ?? null);
             if (session?.user) {
-                refreshCredits();
+                refreshCredits(session.user.id);
             }
             setLoading(false);
         });
 
-        // Listen for auth changes
+        // Listen for Auth Changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
             setUser(session?.user ?? null);
             if (session?.user) {
-                await refreshCredits();
+                await refreshCredits(session.user.id);
             } else {
                 setCredits(0);
                 setPlan('free');
@@ -67,6 +73,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         return () => subscription.unsubscribe();
     }, []);
+
+    // Realtime Updates for Credits/Plan
+    useEffect(() => {
+        if (!user) return;
+
+        const channel = supabase
+            .channel(`profile-updates-${user.id}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'profiles',
+                    filter: `id=eq.${user.id}`,
+                },
+                (payload) => {
+                    console.log('Profile updated realtime:', payload);
+                    refreshCredits(user.id);
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [user]);
 
     return (
         <AuthContext.Provider value={{ user, loading, credits, plan, hasLifetimePrompt, refreshCredits }}>
