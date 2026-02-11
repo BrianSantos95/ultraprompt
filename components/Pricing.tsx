@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Star, Zap } from 'lucide-react';
+import { Check, Star, Zap, ScanFace } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const PLANS = [
@@ -46,24 +46,21 @@ const PLANS = [
         highlight: false,
         buttonText: 'Assinar Ultra Max',
         checkoutUrl: 'https://pay.kiwify.com.br/FV4KsAb'
-    },
-    {
-        name: 'UltraPrompt Vitalício',
-        price: 'R$ 147',
-        credits: 0,
-        features: [
-            'Acesso Vitalício ao UltraPrompt',
-            'Agente Anatômico Ilimitado',
-            'Preservação de Identidade',
-            'Sem Mensalidade',
-            'Atualizações Inclusas'
-        ],
-        highlight: false,
-        buttonText: 'Comprar Vitalício',
-        checkoutUrl: 'https://pay.kiwify.com.br/3IrPND2',
-        isLifetime: true
     }
 ];
+
+const LIFETIME_PLAN = {
+    name: 'UltraPrompt Vitalício',
+    price: 'R$ 37',
+    features: [
+        'Acesso Vitalício ao UltraPrompt',
+        'Agente Anatômico Ilimitado',
+        'Preservação de Identidade',
+        'Sem Mensalidade',
+        'Atualizações Inclusas'
+    ],
+    checkoutUrl: 'https://pay.kiwify.com.br/3IrPND2'
+};
 
 export const Pricing: React.FC = () => {
     const { user } = useAuth();
@@ -81,50 +78,42 @@ export const Pricing: React.FC = () => {
 
     return (
         <div className="w-full max-w-7xl mx-auto py-16 px-4 animate-in fade-in duration-700">
-            <div className="text-center space-y-4 mb-12">
-                <h1 className="text-4xl font-bold text-white tracking-tight">Escolha seu Plano</h1>
+            <div className="text-center space-y-4 mb-16">
+                <h1 className="text-4xl font-bold text-white tracking-tight">Planos de Assinatura</h1>
                 <p className="text-zinc-400 max-w-xl mx-auto text-sm lg:text-base">
-                    Invista na sua criatividade com pacotes de créditos flexíveis e acesso vitalício à nossa inteligência.
+                    Escolha o plano ideal para suas gerações e tenha acesso completo à nossa inteligência.
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+            {/* Grid de Assinaturas */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
                 {PLANS.map((plan) => (
                     <div
                         key={plan.name}
-                        className={`relative rounded-2xl p-6 border flex flex-col ${plan.highlight
+                        className={`relative rounded-2xl p-8 border flex flex-col ${plan.highlight
                             ? 'bg-zinc-900/80 border-orange-500 shadow-2xl shadow-orange-900/20 scale-105 z-10'
-                            : plan.isLifetime
-                                ? 'bg-gradient-to-b from-zinc-900 to-zinc-950 border-orange-500/30'
-                                : 'bg-zinc-900/40 border-zinc-800 hover:border-zinc-700'
+                            : 'bg-zinc-900/40 border-zinc-800 hover:border-zinc-700'
                             } transition-all duration-300`}
                     >
                         {plan.highlight && (
-                            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-orange-500 to-red-600 text-white px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg">
-                                <Star size={10} fill="currentColor" /> Recomendado
+                            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-orange-500 to-red-600 text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg">
+                                <Star size={12} fill="currentColor" /> Recomendado
                             </div>
                         )}
 
-                        <div className="space-y-3 mb-6">
-                            <h3 className={`text-lg font-bold ${plan.highlight ? 'text-white' : 'text-zinc-300'}`}>
+                        <div className="space-y-4 mb-8">
+                            <h3 className={`text-xl font-bold ${plan.highlight ? 'text-white' : 'text-zinc-300'}`}>
                                 {plan.name}
                             </h3>
                             <div className="flex items-baseline gap-1">
-                                <span className="text-3xl font-bold text-white">{plan.price}</span>
-                                {!plan.isLifetime && <span className="text-zinc-500 text-xs">/mês</span>}
-                                {plan.isLifetime && <span className="text-zinc-500 text-xs">Único</span>}
+                                <span className="text-4xl font-bold text-white">{plan.price}</span>
+                                <span className="text-zinc-500 text-sm">/mês</span>
                             </div>
 
-                            {plan.credits > 0 ? (
-                                <div className="flex items-center gap-2 text-orange-400 text-xs font-bold bg-orange-500/10 px-2 py-1.5 rounded-lg w-fit">
-                                    <Zap size={14} fill="currentColor" />
-                                    {plan.credits} Créditos
-                                </div>
-                            ) : (
-                                <div className="flex items-center gap-2 text-zinc-400 text-xs font-bold bg-white/5 px-2 py-1.5 rounded-lg w-fit uppercase tracking-wider">
-                                    Acesso Vitalício
-                                </div>
-                            )}
+                            <div className="flex items-center gap-2 text-orange-400 font-medium bg-orange-500/10 px-3 py-1.5 rounded-lg w-fit">
+                                <Zap size={16} fill="currentColor" />
+                                {plan.credits} Créditos
+                            </div>
                         </div>
 
                         <ul className="space-y-4 mb-8 flex-1">
@@ -147,6 +136,49 @@ export const Pricing: React.FC = () => {
                         </button>
                     </div>
                 ))}
+            </div>
+
+            {/* Seção Separada: Vitalício (Horizontal) */}
+            <div className="max-w-4xl mx-auto">
+                <div className="relative group">
+                    <div className="absolute -inset-1 bg-gradient-to-r from-orange-500/20 to-zinc-500/20 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+                    <div className="relative bg-zinc-900/60 border border-zinc-800/50 rounded-2xl p-8 md:p-10 flex flex-col md:flex-row items-center gap-8 md:gap-12">
+                        <div className="flex-1 space-y-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-lg bg-orange-500/10">
+                                    <ScanFace className="text-orange-500" size={24} />
+                                </div>
+                                <h3 className="text-2xl font-bold text-white">{LIFETIME_PLAN.name}</h3>
+                            </div>
+                            <p className="text-zinc-400 text-sm md:text-base leading-relaxed">
+                                Quer apenas o Agente Anatômico? Garanta o acesso vitalício ao UltraPrompt e eleve o nível das suas criações para sempre.
+                            </p>
+                            <div className="flex flex-wrap gap-x-6 gap-y-2">
+                                {LIFETIME_PLAN.features.slice(0, 3).map((f, i) => (
+                                    <div key={i} className="flex items-center gap-2 text-xs text-zinc-500">
+                                        <Check size={14} className="text-orange-500" /> {f}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col items-center md:items-end gap-4 min-w-[200px]">
+                            <div className="text-center md:text-right">
+                                <span className="text-zinc-500 text-xs line-through block leading-none mb-1">De R$ 147</span>
+                                <div className="flex items-baseline gap-1">
+                                    <span className="text-4xl font-bold text-white">{LIFETIME_PLAN.price}</span>
+                                    <span className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest">Único</span>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => handleSubscribe(LIFETIME_PLAN.checkoutUrl)}
+                                className="w-full md:w-auto px-8 py-4 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition-all shadow-xl"
+                            >
+                                Comprar Agora
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );
