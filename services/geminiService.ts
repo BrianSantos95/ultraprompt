@@ -246,6 +246,40 @@ export const analyzeSpecialistIdentity = async (
   }
 };
 
+export const analyzeStyleReference = async (imageFile: File): Promise<string> => {
+  try {
+    const base64 = await processImageForGemini(imageFile);
+
+    const systemPrompt = `
+      You are an expert Director of Photography and Art Director.
+      
+      MISSION: Analyze the provided image to create a Technical Style & Pose Description.
+      
+      OUTPUT STRICTLY IN THIS FORMAT (Comma separated):
+      "Medium Shot, Low Angle, Dramatic Lighting (Cyan/Orange), Cyberpunk Aesthetic, Subject posing with arms crossed, intense expression, city background with bokeh"
+      
+      RULES:
+      1. IGNORE the identity of the person (do not describe face details).
+      2. FOCUS on: Camera Angle, Lighting, Color Palette, Pose, Composition, Background style.
+      3. Be concise and technical.
+    `;
+
+    return await generateWithRetry(async () => {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.0-flash",
+        contents: {
+          parts: [{ inlineData: { mimeType: "image/jpeg", data: base64 } }, { text: systemPrompt }]
+        }
+      });
+      return response.text?.trim() || "";
+    });
+
+  } catch (error: any) {
+    console.error("Error analyzing style:", error);
+    return "Cinematic shot, professional lighting, realistic texture."; // Fallback
+  }
+};
+
 
 export const generateImageFromText = async (prompt: string, options?: { aspectRatio?: string, referenceImages?: Array<{ data: string, mimeType: string }> }): Promise<string> => {
 

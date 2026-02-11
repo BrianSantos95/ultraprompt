@@ -6,7 +6,7 @@ import {
     Sun, Moon, Zap, Palette, Aperture, Film, Play, Edit3,
     Briefcase, MapPin, Shirt, Package, Type
 } from 'lucide-react';
-import { analyzeSpecialistIdentity, generateImageFromText } from '../services/geminiService';
+import { analyzeSpecialistIdentity, generateImageFromText, analyzeStyleReference } from '../services/geminiService';
 import { ImageReference, AspectRatio } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
@@ -221,23 +221,31 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
                 // --- MODE SPECIFIC PROMPTING ---
                 if (activeMode === 'visual') {
                     // Using Reference Visual Mode
-                    if (referenceImagesPayload.length >= 2) {
+                    let styleDetail = "";
+
+                    if (referenceImages.length > 0) {
+                        setStatusMessage("Analisando estilo da referência visual (IA)...");
+                        try {
+                            styleDetail = await analyzeStyleReference(referenceImages[0].file);
+                        } catch (e) {
+                            console.error("Style Analysis Failed", e);
+                            styleDetail = "Professional photography, cinematic lighting, sharp focus.";
+                        }
+                        parts.push(`STYLE REFERENCE DETAILS: ${styleDetail}`);
+                    }
+
+                    if (referenceImages.length > 0 && specialistImages.length > 0) {
                         // We have both Style and Identity
-                        parts.push(`INSTRUCTION: The FIRST image provided is the Style/Pose Reference. The SECOND image provided is the Character Identity Reference.`);
-                        parts.push(`TASK: Generate a NEW image that is a PIXEL-PERFECT COPY of the composition, pose, lighting, and camera angle of the FIRST image.`);
-                        parts.push(`CRITICAL: Do NOT mirror or flip the image. Maintain the exact gaze direction, head tilt, and subject orientation.`);
-                        parts.push(`CHARACTER: Replace the person in the style image with the person from the SECOND image (Identity Reference). Maintain the second person's facial features 100% while fitting them perfectly into the first image's lighting and angle.`);
-                    } else if (referenceImagesPayload.length === 1 && referenceImages.length > 0) {
+                        parts.push(`TASK: Generate a NEW image that combines the CHARACTER described above (Subject Description) with the POSE/STYLE described in STYLE REFERENCE DETAILS.`);
+                        parts.push(`CRITICAL: The face must match the Subject Description EXACTLY. The lighting, camera angle, and pose must match the Style Reference EXACTLY.`);
+                    } else if (referenceImages.length > 0) {
                         // Only Style provided
-                        parts.push(`INSTRUCTION: The image provided is a Style/Pose Reference.`);
-                        parts.push(`TASK: Generate a new image that copies this style, composition, and pose exactly. Do not mirror.`);
-                    } else if (referenceImagesPayload.length === 1 && specialistImages.length > 0) {
-                        // Only Identity provided (fallback logic)
-                        parts.push(`INSTRUCTION: The image provided is the Character Reference.`);
+                        parts.push(`TASK: Generate a new image that matches the STYLE REFERENCE DETAILS exactly.`);
+                    } else if (specialistImages.length > 0) {
+                        // Only Identity provided
                         parts.push(`TASK: Generate a portrait of this person.`);
                     }
-                    parts.push(`Use valid professional photography lighting and composition.`);
-
+                    parts.push(`Verify lighting and shadow consistency.`);
                 } else if (activeMode === 'prompt') {
                     // Using Prompt Mode
                     if (referenceImagesPayload.length > 0) {
