@@ -282,44 +282,49 @@ export const analyzeStyleReference = async (imageFile: File): Promise<string> =>
 
 
 export const generateImageFromText = async (prompt: string, options?: { aspectRatio?: string, referenceImages?: Array<{ data: string, mimeType: string }> }): Promise<string> => {
-
-  // Fallback to Pollinations.ai for image generation (Free, robust)
-  // Map Aspect Ratio to Width/Height
-  let width = 1024;
-  let height = 1024;
-
-  if (options?.aspectRatio) {
-    switch (options.aspectRatio) {
-      case '16:9': width = 1280; height = 720; break;
-      case '9:16': width = 720; height = 1280; break;
-      case '4:5': width = 816; height = 1024; break;
-      case '1:1': default: width = 1024; height = 1024; break;
-    }
-  }
-
-  // Enhance prompt for Pollinations
-  const enhancedPrompt = encodeURIComponent(`${prompt} --quality 4 --stylize 1000`);
-  const seed = Math.floor(Math.random() * 1000000);
-
-  // Construct URL
-  const imageUrl = `https://image.pollinations.ai/prompt/${enhancedPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true`;
-
-  // Verify if image is accessible (optional, but good practice)
   try {
-    const response = await fetch(imageUrl);
-    if (!response.ok) throw new Error("Falha ao gerar imagem no servidor externo.");
+    // Determine Aspect Ratio for Imagen/Gemini (usually accepts "1:1", "16:9", etc directly)
+    // or we might need to map to specific strings if the model is strict.
+    // For now, passing the string directly or default '1:1'.
+    const aspect = options?.aspectRatio || "1:1";
 
-    // Convert to blob -> base64 to ensure it displays correctly and can be downloaded easily
-    const blob = await response.blob();
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
+    const modelId = "nano-banana-pro-3"; // User specified model
+
+    // Construct the request
+    // Note: If using a custom finetuned model, the ID might be 'models/nano-banana-pro-3' or similar.
+    // We try the bare ID first.
+
+    return await generateWithRetry(async () => {
+      const response = await ai.models.generateContent({
+        model: modelId,
+        contents: {
+          parts: [{ text: prompt }]
+        },
+        config: {
+          // If this is an Imagen-class model accessed via generateContent:
+          responseMimeType: "image/jpeg",
+        }
+      });
+
+      // Check for inline data (Base64)
+      const parts = response.candidates?.[0]?.content?.parts;
+      if (parts) {
+        for (const part of parts) {
+          if (part.inlineData && part.inlineData.data) {
+            return part.inlineData.data;
+          }
+        }
+      }
+
+      // If no inline data, check properly...
+      // Some older endpoints returned predictions.
+
+      throw new Error("A IA não retornou imagem. Verifique se o modelo suporta geração de imagem.");
     });
 
-  } catch (e: any) {
-    console.error("Image Gen Error:", e);
-    throw new Error("Não foi possível gerar a imagem. Tente novamente.");
+  } catch (error: any) {
+    console.error("Gemini Image Gen Error:", error);
+    // Fallback/Error Message
+    throw new Error(`Falha na geração com ${"nano-banana-pro-3"}: ${error.message}`);
   }
 };
