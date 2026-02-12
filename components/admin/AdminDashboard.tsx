@@ -158,11 +158,13 @@ export const AdminDashboard: React.FC = () => {
     useEffect(() => {
         if (user?.email === ADMIN_EMAIL) {
             fetchData();
-        } else {
+        } else if (user) {
+            // Only set error if user exists but is not admin. 
+            // If user is null (loading), do nothing yet.
             setLoading(false);
             setError('Acesso negado. Apenas administradores podem ver esta página.');
         }
-    }, [user]);
+    }, [user?.email]);
 
     const fetchData = async () => {
         setLoading(true);

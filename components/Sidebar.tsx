@@ -51,7 +51,10 @@ const UserProfile = ({ currentView, onViewChange }: any) => {
           <p className="text-[10px] text-zinc-500 truncate capitalize">{plan || 'Free Plan'}</p>
         </div>
         <button
-          onClick={() => supabase.auth.signOut()}
+          onClick={async () => {
+            await supabase.auth.signOut();
+            window.location.reload();
+          }}
           className="absolute right-2 opacity-0 group-hover:opacity-100 p-1.5 hover:bg-white/10 rounded-md text-zinc-400 hover:text-white transition-all"
           title="Sair"
         >
