@@ -160,7 +160,7 @@ export const generatePromptFromImage = async (
 
     return await generateWithRetry(async () => {
       const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
+        model: "gemini-3-flash-preview",
         contents: {
           parts: [
             { inlineData: { mimeType: "image/jpeg", data: base64Data } },
@@ -228,7 +228,7 @@ export const analyzeSpecialistIdentity = async (
 
     return await generateWithRetry(async () => {
       const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
+        model: "gemini-3-flash-preview",
         contents: {
           parts: [...imageParts, { text: systemPrompt }]
         }
@@ -266,7 +266,7 @@ export const analyzeStyleReference = async (imageFile: File): Promise<string> =>
 
     return await generateWithRetry(async () => {
       const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
+        model: "gemini-3-flash-preview",
         contents: {
           parts: [{ inlineData: { mimeType: "image/jpeg", data: base64 } }, { text: systemPrompt }]
         }
