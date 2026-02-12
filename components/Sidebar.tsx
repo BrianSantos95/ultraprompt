@@ -149,6 +149,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange }) =
           />
         </div>
 
+        {/* Admin Dashboard Temporarily Disabled
         {user?.email === 'othonbrian@gmail.com' && (
           <div className="pt-4 mt-4 border-t border-zinc-800 hidden lg:block">
             <NavItem
@@ -159,6 +160,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange }) =
             />
           </div>
         )}
+        */}
       </nav>
 
       {/* User Mini Profile */}

@@ -27,23 +27,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [plan, setPlan] = useState('free');
     const [hasLifetimePrompt, setHasLifetimePrompt] = useState(false);
 
-    const refreshCredits = async (userIdStr?: string) => {
-        const targetId = userIdStr || user?.id;
-        if (!targetId) return;
+    const refreshCredits = async () => {
+        if (!user) return;
 
         const { data, error } = await supabase
             .from('profiles')
             .select('credits, subscription_tier, has_lifetime_prompt, is_banned')
-            .eq('id', targetId)
+            .eq('id', user.id)
             .single();
 
         if (data && !error) {
             setCredits(data.credits);
             setPlan(data.subscription_tier || 'free');
             setHasLifetimePrompt(!!data.has_lifetime_prompt);
-            // Optional: Block login if banned? 
             if (data.is_banned) {
-                // For now just log, strict blocking would happen in RLS or middleware
                 console.warn("User is banned");
             }
         }
@@ -54,7 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         supabase.auth.getSession().then(({ data: { session } }) => {
             setUser(session?.user ?? null);
             if (session?.user) {
-                refreshCredits(session.user.id);
+                refreshCredits();
             }
             setLoading(false);
         });
@@ -63,7 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
             setUser(session?.user ?? null);
             if (session?.user) {
-                await refreshCredits(session.user.id);
+                await refreshCredits();
             } else {
                 setCredits(0);
                 setPlan('free');

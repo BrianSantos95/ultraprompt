@@ -254,7 +254,7 @@ export const AdminDashboard: React.FC = () => {
 
             // If admin edited themselves, refresh local auth state immediately
             if (user && editingUser.id === user.id) {
-                await refreshCredits(user.id);
+                await refreshCredits();
             }
         } catch (err: any) {
             alert('Erro ao atualizar usuário: ' + err.message);
