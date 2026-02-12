@@ -282,18 +282,8 @@ export const analyzeStyleReference = async (imageFile: File): Promise<string> =>
 
 
 export const generateImageFromText = async (prompt: string, options?: { aspectRatio?: string, referenceImages?: Array<{ data: string, mimeType: string }> }): Promise<string> => {
-  try {
-    // Determine Aspect Ratio for Imagen/Gemini (usually accepts "1:1", "16:9", etc directly)
-    // or we might need to map to specific strings if the model is strict.
-    // For now, passing the string directly or default '1:1'.
-    const aspect = options?.aspectRatio || "1:1";
-
-    const modelId = "gemini-3-pro-image-preview";
-
-    // Construct the request
-    // Note: If using a custom finetuned model, the ID might be 'models/nano-banana-pro-3' or similar.
-    // We try the bare ID first.
-
+  // Helper function to try a specific model
+  const tryModel = async (modelId: string) => {
     return await generateWithRetry(async () => {
       const response = await ai.models.generateContent({
         model: modelId,
@@ -301,12 +291,10 @@ export const generateImageFromText = async (prompt: string, options?: { aspectRa
           parts: [{ text: prompt }]
         },
         config: {
-          // If this is an Imagen-class model accessed via generateContent:
           responseMimeType: "image/jpeg",
         }
       });
 
-      // Check for inline data (Base64)
       const parts = response.candidates?.[0]?.content?.parts;
       if (parts) {
         for (const part of parts) {
@@ -315,16 +303,21 @@ export const generateImageFromText = async (prompt: string, options?: { aspectRa
           }
         }
       }
+      throw new Error(`Modelo ${modelId} não retornou imagem.`);
+    }, 1); // 1 attempt per model to prevent long wait
+  };
 
-      // If no inline data, check properly...
-      // Some older endpoints returned predictions.
-
-      throw new Error("A IA não retornou imagem. Verifique se o modelo suporta geração de imagem.");
-    });
-
-  } catch (error: any) {
-    console.error("Gemini Image Gen Error:", error);
-    // Fallback/Error Message
-    throw new Error(`Falha na geração com ${"gemini-3-pro-image-preview"}: ${error.message}`);
+  try {
+    // 1. Try User Requested Model
+    return await tryModel("gemini-3-pro-image-preview");
+  } catch (e1: any) {
+    console.warn("Primary model 'gemini-3-pro-image-preview' failed. Trying fallback 'imagen-3.0-generate-001'...", e1);
+    try {
+      // 2. Fallback to Official Imagen 3
+      return await tryModel("imagen-3.0-generate-001");
+    } catch (e2: any) {
+      console.error("All image generation attempts failed.", e2);
+      throw new Error(`Falha na geração (todas as tentativas): ${e1.message} || ${e2.message}`);
+    }
   }
 };
