@@ -288,7 +288,7 @@ export const generateImageFromText = async (prompt: string, options?: { aspectRa
     // For now, passing the string directly or default '1:1'.
     const aspect = options?.aspectRatio || "1:1";
 
-    const modelId = "nano-banana-pro-3"; // User specified model
+    const modelId = "gemini-3-pro-image-preview";
 
     // Construct the request
     // Note: If using a custom finetuned model, the ID might be 'models/nano-banana-pro-3' or similar.
@@ -325,6 +325,6 @@ export const generateImageFromText = async (prompt: string, options?: { aspectRa
   } catch (error: any) {
     console.error("Gemini Image Gen Error:", error);
     // Fallback/Error Message
-    throw new Error(`Falha na geração com ${"nano-banana-pro-3"}: ${error.message}`);
+    throw new Error(`Falha na geração com ${"gemini-3-pro-image-preview"}: ${error.message}`);
   }
 };
