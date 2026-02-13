@@ -26,14 +26,20 @@ const App: React.FC = () => {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
+  // Handle navigation and update URL hash
+  const handleNavigation = (view: View | 'admin') => {
+    setCurrentView(view);
+    window.location.hash = view;
+  };
+
   const renderView = () => {
     switch (currentView) {
       case 'home':
-        return <Home onNavigate={setCurrentView} />;
+        return <Home onNavigate={handleNavigation} />;
       case 'ultraprompt':
-        return <UltraPromptView onNavigate={setCurrentView} />;
+        return <UltraPromptView onNavigate={handleNavigation} />;
       case 'ultragen':
-        return <UltraGenView onNavigate={setCurrentView} />;
+        return <UltraGenView onNavigate={handleNavigation} />;
       case 'pricing':
         return <Pricing />;
       case 'login':
@@ -41,7 +47,7 @@ const App: React.FC = () => {
       case 'admin':
         return <AdminDashboard />;
       default:
-        return <Home onNavigate={setCurrentView} />;
+        return <Home onNavigate={handleNavigation} />;
     }
   };
 
@@ -50,7 +56,7 @@ const App: React.FC = () => {
       <div className="flex min-h-screen bg-black text-zinc-100 font-sans selection:bg-white selection:text-black">
 
         {/* Fixed Sidebar */}
-        <Sidebar currentView={currentView} onViewChange={setCurrentView} />
+        <Sidebar currentView={currentView} onViewChange={handleNavigation} />
 
         {/* Main Content Area */}
         <main className="flex-1 ml-0 lg:ml-64 pb-24 lg:pb-8 p-4 lg:p-8 flex items-center justify-center min-h-screen relative overflow-hidden">

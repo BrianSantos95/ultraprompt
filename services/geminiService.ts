@@ -218,12 +218,13 @@ export const analyzeSpecialistIdentity = async (
       The goal is to allow regenerating images of THIS SPECIFIC PERSON in new contexts while maintaining their identity 100%.
 
       STRICT RULES:
-      1. **CAPTURE IDENTITY PRECISION**: Describe specific facial bone structure, exact eye shape/color, nose bridge, jawline, skin texture, and unique identifiers (moles, scars).
-      2. **CONSISTENCY**: Synthesize traits consistent across all provided images.
-      3. **OBJECTIVE**: Be descriptive, precise, and visual.
+      1. **CAPTURE IDENTITY PRECISION**: Describe specific facial bone structure, exact eye shape/color, nose bridge, jawline, skin texture.
+      2. **DISTINCTIVE FEATURES (MANDATORY)**: You MUST describe any TATTOOS (location, design, color), SCARS, MOLES, or unique skin markings. If the person has face tattoos, describe them in detail.
+      3. **CONSISTENCY**: Synthesize traits consistent across all provided images.
+      4. **OBJECTIVE**: Be descriptive, precise, and visual.
       
       OUTPUT FORMAT:
-      Return ONLY a single, highly detailed paragraph starting with: "A photo of [Age] [Gender] [Ethnicity], [Detailed Face Description], [Body/Hair Details]..."
+      Return ONLY a single, highly detailed paragraph starting with: "A photo of [Age] [Gender] [Ethnicity], [Detailed Face Description], [Describe Tattoos/Markings if any], [Body/Hair Details]..."
     `;
 
     return await generateWithRetry(async () => {
@@ -251,17 +252,23 @@ export const analyzeStyleReference = async (imageFile: File): Promise<string> =>
     const base64 = await processImageForGemini(imageFile);
 
     const systemPrompt = `
-      You are an expert Director of Photography and Art Director.
+      You are an elite Forensic Visual Analyst and Technical Director.
       
-      MISSION: Analyze the provided image to create a Technical Style & Pose Description.
+      CRITICAL MISSION: Deconstruct the provided image into a SURGICAL, SCIENTIFIC set of instructions for perfect reconstruction.
       
-      OUTPUT STRICTLY IN THIS FORMAT (Comma separated):
-      "Medium Shot, Low Angle, Dramatic Lighting (Cyan/Orange), Cyberpunk Aesthetic, Subject posing with arms crossed, intense expression, city background with bokeh"
+      ANALYSIS PROTOCOLS (MANDATORY):
+      1. **SPATIAL & CAMERA**: Identify exact focal length (e.g., 35mm, 85mm), camera height & angle in degrees (e.g., "Low angle 30°"), distance to subject, and sensor format (e.g., "Full Frame", "Medium Format").
+      2. **SURGICAL POSE RECONSTRUCTION**: Describe the pose with ANATOMICAL PRECISION. 
+         - **Spine/Body**: "Torso rotated 15° left, spine erect".
+         - **Limbs**: "Right arm abducted 45°, elbow flexed".
+         - **HANDS/FINGERS (EXTREME PRIORITY)**: You MUST describe specific finger placement (e.g., "Index finger pointing, others curled", "Grip tension visible").
+      3. **LIGHTING PHYSICS**: Map the light sources. "Key light softbox 45° left, Rim light hard 5600K right". Describe shadow falloff and contrast ratio.
+      4. **SCENE & ELEMENTS**: List every background element and its spatial relationship to the subject. "Gaussian blur on background (f/1.8)".
       
-      RULES:
-      1. IGNORE the identity of the person (do not describe face details).
-      2. FOCUS on: Camera Angle, Lighting, Color Palette, Pose, Composition, Background style.
-      3. Be concise and technical.
+      OUTPUT FORMAT (Single, dense paragraph):
+      "Shot on [Camera/Lens], [Angle/Distance]. SUBJECT POSE: [Scientific Pose Description including Hand/Finger details]. LIGHTING: [Technical Lighting Setup]. SCENE: [Detailed Background & Props]. STYLE: [Visual Aesthetic keywords]."
+      
+      STRICTLY OBJECTIVE. NO FLUFF. USE TECHNICAL TERMINOLOGY.
     `;
 
     return await generateWithRetry(async () => {
@@ -281,43 +288,56 @@ export const analyzeStyleReference = async (imageFile: File): Promise<string> =>
 };
 
 
-export const generateImageFromText = async (prompt: string, options?: { aspectRatio?: string, referenceImages?: Array<{ data: string, mimeType: string }> }): Promise<string> => {
-  // Helper function to try a specific model
-  const tryModel = async (modelId: string) => {
-    return await generateWithRetry(async () => {
-      const response = await ai.models.generateContent({
-        model: modelId,
-        contents: {
-          parts: [{ text: prompt }]
-        },
-        config: {
-          responseMimeType: "image/jpeg",
-        }
-      });
 
-      const parts = response.candidates?.[0]?.content?.parts;
-      if (parts) {
-        for (const part of parts) {
-          if (part.inlineData && part.inlineData.data) {
-            return part.inlineData.data;
+
+export const generateImageFromText = async (prompt: string, options?: { aspectRatio?: string, referenceImages?: Array<{ data: string, mimeType: string }> }): Promise<string> => {
+  return await generateWithRetry(async () => {
+    // Configuration for the requested model
+    const config: any = {};
+
+    if (options?.aspectRatio) {
+      config.imageConfig = {
+        aspectRatio: options.aspectRatio
+      };
+    }
+
+    /* 
+       User has specifically requested 'gemini-3-pro-image-preview'.
+       This model is used via the generateContent endpoint with imageConfig.
+    */
+
+    // Construct parts: Text prompt is mandatory
+    const inputParts: any[] = [{ text: prompt }];
+
+    // If reference images are provided (Identity or Style), add them to the input
+    if (options?.referenceImages && options.referenceImages.length > 0) {
+      options.referenceImages.forEach(img => {
+        // Prepend images to give them context priority
+        inputParts.unshift({
+          inlineData: {
+            mimeType: img.mimeType,
+            data: img.data
           }
+        });
+      });
+    }
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3-pro-image-preview",
+      contents: {
+        parts: inputParts
+      },
+      config: config
+    });
+
+    const parts = response.candidates?.[0]?.content?.parts;
+    if (parts) {
+      for (const part of parts) {
+        if (part.inlineData && part.inlineData.data) {
+          return `data:image/jpeg;base64,${part.inlineData.data}`;
         }
       }
-      throw new Error(`Modelo ${modelId} não retornou imagem.`);
-    }, 1); // 1 attempt per model to prevent long wait
-  };
-
-  try {
-    // 1. Try User Requested Model
-    return await tryModel("gemini-3-pro-image-preview");
-  } catch (e1: any) {
-    console.warn("Primary model 'gemini-3-pro-image-preview' failed. Trying fallback 'imagen-3.0-generate-001'...", e1);
-    try {
-      // 2. Fallback to Official Imagen 3
-      return await tryModel("imagen-3.0-generate-001");
-    } catch (e2: any) {
-      console.error("All image generation attempts failed.", e2);
-      throw new Error(`Falha na geração (todas as tentativas): ${e1.message} || ${e2.message}`);
     }
-  }
+    throw new Error("O modelo gemini-3-pro-image-preview não retornou dados de imagem.");
+  });
 };

@@ -33,7 +33,7 @@ export const UltraPromptView: React.FC = () => {
         focusSkin: true,
         focusLighting: true,
         focusCamera: true,
-        focusStyle: false,
+        focusStyle: true,
     });
 
     const [analysisResult, setAnalysisResult] = useState<string>("");
@@ -90,11 +90,28 @@ export const UltraPromptView: React.FC = () => {
         }
     };
 
-    const copyToClipboard = () => {
+    const copyToClipboard = async () => {
         if (!analysisResult) return;
-        navigator.clipboard.writeText(analysisResult);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        try {
+            await navigator.clipboard.writeText(analysisResult);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch (err) {
+            console.error("Failed to copy text: ", err);
+            // Fallback for older browsers or if permission denied
+            const textArea = document.createElement("textarea");
+            textArea.value = analysisResult;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+            } catch (fallbackErr) {
+                console.error("Fallback copy failed: ", fallbackErr);
+            }
+            document.body.removeChild(textArea);
+        }
     };
 
     const toggleSetting = (key: keyof PromptSettings) => {
@@ -240,35 +257,30 @@ export const UltraPromptView: React.FC = () => {
                     <div className="h-px bg-zinc-800/50 w-full" />
 
                     {/* Focus Grid */}
-                    {/* Focus Grid */}
-                    <div className="space-y-2">
-                        <label className="text-sm font-bold text-zinc-100 flex items-center gap-2">
-                            <Aperture size={16} className="text-orange-500" /> Foco da Análise
+
+                    {/* Detail Level Selector */}
+                    <div>
+                        <label className="text-sm font-bold text-zinc-100 flex items-center gap-2 mb-2">
+                            <span className="text-xs uppercase tracking-wider text-zinc-500">Nível de Precisão</span>
                         </label>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="flex bg-zinc-950 p-1 rounded-lg border border-zinc-800">
                             <button
-                                onClick={() => toggleSetting('focusSkin')}
-                                className={`p-3 rounded-lg border text-xs font-medium flex items-center gap-2 transition-all ${settings.focusSkin ? 'bg-orange-500/10 border-orange-500/50 text-orange-400' : 'bg-transparent border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}
+                                onClick={() => setSettings(prev => ({ ...prev, detailLevel: DetailLevel.HIGH }))}
+                                className={`flex-1 py-1.5 text-[10px] font-bold uppercase rounded-md transition-all ${settings.detailLevel === DetailLevel.HIGH ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
                             >
-                                <ScanFace size={14} /> Pele & Textura
+                                Alto
                             </button>
                             <button
-                                onClick={() => toggleSetting('focusLighting')}
-                                className={`p-3 rounded-lg border text-xs font-medium flex items-center gap-2 transition-all ${settings.focusLighting ? 'bg-orange-500/10 border-orange-500/50 text-orange-400' : 'bg-transparent border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}
+                                onClick={() => setSettings(prev => ({ ...prev, detailLevel: DetailLevel.EXTREME }))}
+                                className={`flex-1 py-1.5 text-[10px] font-bold uppercase rounded-md transition-all ${settings.detailLevel === DetailLevel.EXTREME ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
                             >
-                                <Sun size={14} /> Iluminação
+                                Extremo
                             </button>
                             <button
-                                onClick={() => toggleSetting('focusCamera')}
-                                className={`p-3 rounded-lg border text-xs font-medium flex items-center gap-2 transition-all ${settings.focusCamera ? 'bg-orange-500/10 border-orange-500/50 text-orange-400' : 'bg-transparent border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}
+                                onClick={() => setSettings(prev => ({ ...prev, detailLevel: DetailLevel.SCIENTIFIC }))}
+                                className={`flex-1 py-1.5 text-[10px] font-bold uppercase rounded-md transition-all ${settings.detailLevel === DetailLevel.SCIENTIFIC ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
                             >
-                                <Camera size={14} /> Câmera/Lente
-                            </button>
-                            <button
-                                onClick={() => toggleSetting('focusStyle')}
-                                className={`p-3 rounded-lg border text-xs font-medium flex items-center gap-2 transition-all ${settings.focusStyle ? 'bg-orange-500/10 border-orange-500/50 text-orange-400' : 'bg-transparent border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}
-                            >
-                                <Palette size={14} /> Estilo Artístico
+                                Científico
                             </button>
                         </div>
                     </div>

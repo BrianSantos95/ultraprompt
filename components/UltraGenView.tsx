@@ -4,7 +4,7 @@ import {
     Maximize, Smartphone, Monitor, RectangleVertical, Square,
     User, Download, Layers, RefreshCcw, Loader2, Camera,
     Sun, Moon, Zap, Palette, Aperture, Film, Play, Edit3,
-    Briefcase, MapPin, Shirt, Package, Type
+    Briefcase, MapPin, Shirt, Package, Type, ChevronRight
 } from 'lucide-react';
 import { analyzeSpecialistIdentity, generateImageFromText, analyzeStyleReference } from '../services/geminiService';
 import { ImageReference, AspectRatio } from '../types';
@@ -38,11 +38,12 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
     const [cameraAngle, setCameraAngle] = useState('');
     const [hasObjectImage, setHasObjectImage] = useState(false);
     const [objectImagePreview, setObjectImagePreview] = useState<string | null>(null);
+    const [objectImageFile, setObjectImageFile] = useState<File | null>(null);
     const [objectDetails, setObjectDetails] = useState('');
 
     // Edit & Settings
     const [editPrompt, setEditPrompt] = useState('');
-    const [ratio, setRatio] = useState<AspectRatio>('1:1');
+    const [ratio, setRatio] = useState<AspectRatio>('4:5');
 
     // Execution State
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -93,6 +94,7 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             setObjectImagePreview(URL.createObjectURL(file));
+            setObjectImageFile(file);
             setHasObjectImage(true);
         }
     };
@@ -105,6 +107,15 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
             return newImages;
         });
         setSpecialistDescription('');
+    };
+
+    const removeReferenceImage = (index: number) => {
+        setReferenceImages(prev => {
+            const newImages = [...prev];
+            URL.revokeObjectURL(newImages[index].previewUrl);
+            newImages.splice(index, 1);
+            return newImages;
+        });
     };
 
     const getDimensions = (r: AspectRatio) => {
@@ -139,21 +150,17 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
     // --- Auth & Credits ---
     const { user, credits, refreshCredits } = useAuth();
 
-    const handleGenerate = async (isEdit: boolean) => {
-        if (!user) {
-            setStatusMessage("Erro: Você precisa estar logado para gerar imagens.");
-            return;
-        }
-        if (credits <= 0) {
-            setShowCreditModal(true);
-            return;
-        }
 
-        if (!prompt && activeMode === 'prompt') return;
-        if (!isEdit && activeMode === 'ultra' && !niche) return;
-        if (isEdit) {
-            if (!generatedImage || !editPrompt) return;
-        }
+    // ... inside UltraGenView component
+
+    // Valid values for photo style
+    type PhotoStyle = 'professional' | 'iphone' | 'selfie';
+    const [photoStyle, setPhotoStyle] = useState<PhotoStyle>('professional');
+
+    // ... existing state
+
+    const handleGenerate = async (isEdit: boolean) => {
+        // ... (validation checks same as before)
 
         setIsGenerating(true);
         setStatusMessage(isEdit ? "Aplicando edições..." : "Iniciando processo criativo...");
@@ -162,7 +169,7 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
             let finalPromptToUse = "";
             let referenceImagesPayload: Array<{ data: string, mimeType: string }> = [];
 
-            // 1. Prepare Reference Images Logic
+            // 1. Prepare Reference Images Logic (Same as before)
             // MODE: VISUAL (Needs Style/Pose + Identity)
             if (activeMode === 'visual') {
                 // Image 1: Style/Pose Reference (from 'referenceImages')
@@ -186,10 +193,15 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
                     const base64 = await fileToBase64(file);
                     referenceImagesPayload.push({ data: base64, mimeType: file.type });
                 }
+
+                // ULTRA MODE: Add Object Image if exists
+                if (activeMode === 'ultra' && hasObjectImage && objectImageFile) {
+                    const base64 = await fileToBase64(objectImageFile);
+                    referenceImagesPayload.push({ data: base64, mimeType: objectImageFile.type });
+                }
             }
 
             if (isEdit) {
-                // EDIT MODE (Appending to previous prompt)
                 finalPromptToUse = `${generatedPrompt}. Modification: ${editPrompt}. Maintain identity.`;
             } else {
                 // CREATION MODE
@@ -205,113 +217,88 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
                         setSpecialistDescription(currentSpecialistDesc);
                     } catch (e) {
                         console.error("Identity Analysis Failed", e);
-                        currentSpecialistDesc = "Person"; // Fallback
+                        currentSpecialistDesc = "Person";
                     } finally {
                         setIsAnalyzing(false);
                     }
                 }
 
-                // 2. Build Prompt Structure based on MODE and Reference Images
+                // 2. Build Prompt Structure
                 const parts = [];
 
-                if (currentSpecialistDesc) {
-                    parts.push(`Subject Description: ${currentSpecialistDesc}.`);
+                // --- PHOTOGRAPHY STYLE INJECTION ---
+                let photoStylePrompt = "";
+                if (photoStyle === 'professional') {
+                    photoStylePrompt = "Shot on Sony A7R IV, 85mm lens, f/1.8, professional studio lighting, extremely detailed, sharp focus, 8k, highly aesthetic.";
+                } else if (photoStyle === 'iphone') {
+                    photoStylePrompt = "Shot on iPhone 15 Pro Max REAR CAMERA (Main Lens 48MP). Digital photography aesthetic, sharp details, HDR processing style, vibrant colors. NOT A SELFIE. Subject is being photographed by someone else. High quality social media content style.";
+                } else if (photoStyle === 'selfie') {
+                    photoStylePrompt = "TRUE SELFIE POV: Subject's arm is extended forward holding the camera (invisible). The camera IS the phone. NO visible phone in hand. Perspective distortion typical of wide-angle front camera. Subject looking DIRECTLY into lens. One arm extended out of frame to hold the camera.";
                 }
 
-                // --- MODE SPECIFIC PROMPTING ---
-                if (activeMode === 'visual') {
-                    // Using Reference Visual Mode
-                    let styleDetail = "";
+                // Append Identity ALWAYS if available
+                if (currentSpecialistDesc) {
+                    parts.push(`SUBJECT IDENTITY (STRICT): The main subject IS ${currentSpecialistDesc}. You MUST preserve these facial features, including tattoos/scars.`);
+                }
 
+                if (activeMode === 'visual') {
+                    let styleDetail = "";
                     if (referenceImages.length > 0) {
                         setStatusMessage("Analisando estilo da referência visual (IA)...");
                         try {
                             styleDetail = await analyzeStyleReference(referenceImages[0].file);
                         } catch (e) {
-                            console.error("Style Analysis Failed", e);
-                            styleDetail = "Professional photography, cinematic lighting, sharp focus.";
+                            styleDetail = "Professional photography.";
                         }
-                        parts.push(`STYLE REFERENCE DETAILS: ${styleDetail}`);
-                    }
-
-                    if (referenceImages.length > 0 && specialistImages.length > 0) {
-                        // We have both Style and Identity
-                        parts.push(`TASK: Generate a NEW image that combines the CHARACTER described above (Subject Description) with the POSE/STYLE described in STYLE REFERENCE DETAILS.`);
-                        parts.push(`CRITICAL: The face must match the Subject Description EXACTLY. The lighting, camera angle, and pose must match the Style Reference EXACTLY.`);
-                    } else if (referenceImages.length > 0) {
-                        // Only Style provided
-                        parts.push(`TASK: Generate a new image that matches the STYLE REFERENCE DETAILS exactly.`);
-                    } else if (specialistImages.length > 0) {
-                        // Only Identity provided
-                        parts.push(`TASK: Generate a portrait of this person.`);
-                    }
-                    parts.push(`Verify lighting and shadow consistency.`);
-                } else if (activeMode === 'prompt') {
-                    // Using Prompt Mode
-                    if (referenceImagesPayload.length > 0) {
-                        parts.push(`INSTRUCTION: The image provided is the Character Reference.`);
-                        parts.push(`TASK: Generate a photo of this character in the following scenario: ${prompt}`);
-                        parts.push(`Ensure the face matches the reference image exactly.`);
+                        parts.push(`STYLE REFERENCE: ${styleDetail}`);
+                        parts.push(`TASK: COPY the pose, lighting, and composition from the 'STYLE REFERENCE' but SWAP the person with 'SUBJECT IDENTITY'.`);
                     } else {
-                        parts.push(`Description: ${prompt}`);
+                        parts.push(`TASK: specific portrait of 'SUBJECT IDENTITY'.`);
                     }
-
+                } else if (activeMode === 'prompt') {
+                    parts.push(`SCENARIO: ${prompt}`);
+                    parts.push(`TASK: Place 'SUBJECT IDENTITY' into 'SCENARIO'.`);
                 } else if (activeMode === 'ultra') {
-                    // Using Ultra Mode
-                    if (referenceImagesPayload.length > 0) {
-                        parts.push(`INSTRUCTION: The image provided is the Character Reference. Generate this character in the specified role.`);
-                        parts.push(`Ensure the face matches the reference image exactly.`);
+                    parts.push(`ROLE: Professional ${niche || 'Portrait'}.`);
+                    parts.push(`ACTION/POSE: ${description}.`);
+                    if (environment) parts.push(`ENVIRONMENT: ${environment}.`);
+
+                    // Object Integration - Prompt Injection
+                    if (objectImageFile) {
+                        const objDesc = objectDetails ? objectDetails : "the object provided in the reference image";
+                        const imgRefText = specialistImages.length > 0 ? "2nd image" : "reference image";
+                        parts.push(`OBJECT INTEGRATION: The image MUST include ${objDesc}. Use the pinned ${imgRefText} as the EXACT visual source for this object. The object must look EXACTLY like the reference.`);
                     }
-                    parts.push(`Role/Niche: Professional ${niche || 'Portrait'}.`);
-                    if (environment) parts.push(`Environment: ${environment}.`);
-                    parts.push(`Action/Pose/Outfit: ${description}.`);
-                    if (hasObjectImage && objectDetails) {
-                        parts.push(`Specific Object/Logo Detail: ${objectDetails}. Ensure it is integrated naturally (e.g. holding it, on shirt, or in background as requested).`);
-                    }
+                    parts.push(`TASK: Generate 'SUBJECT IDENTITY' in this role.`);
                 }
 
-                parts.push("ultra realistic, 8k, 4k resolution, 2k, photorealistic, RAW photo, highly detailed texture, cinematic lighting, sharp focus, best quality, masterpiece.");
+                parts.push(`PHOTOGRAPHY STYLE: ${photoStylePrompt}`);
+                if (photoStyle === 'selfie') {
+                    parts.push("IMPORTANT: The subject must look directly into the camera lens as if taking a selfie.");
+                }
+                parts.push("QUALITY: masterpiece, best quality, ultra-detailed.");
 
                 finalPromptToUse = parts.join(" ");
             }
 
-            setGeneratedPrompt(finalPromptToUse); // Save for future edits
+            setGeneratedPrompt(finalPromptToUse);
             setStatusMessage("Gerando imagem de alta fidelidade...");
 
-            // 3. Generate via Service (Google Nano Banana Pro 3)
-            // Now passing options: aspectRatio and referenceImages (plural)
             const baseUrl = await generateImageFromText(finalPromptToUse, {
-                aspectRatio: ratio, // e.g. "4:5"
-                referenceImages: referenceImagesPayload // Updated property name
+                aspectRatio: ratio,
+                referenceImages: referenceImagesPayload
             });
 
+            // ... same finishing logic
             let finalUrl = baseUrl;
-
-            // Deduct Credit
             if (user) {
-                const { error: creditError } = await supabase
-                    .from('profiles')
-                    .update({ credits: credits - 1 })
-                    .eq('id', user.id);
-
-                if (!creditError) {
-                    refreshCredits(); // Update UI
-                }
+                await supabase.from('profiles').update({ credits: credits - 1 }).eq('id', user.id);
+                refreshCredits();
             }
 
-            // Pre-load
             const img = new Image();
-            img.onload = () => {
-                setGeneratedImage(finalUrl);
-                setIsGenerating(false);
-                setStatusMessage("");
-                if (isEdit) setEditPrompt("");
-            };
-            img.onerror = () => {
-                setGeneratedImage(finalUrl); // Try showing anyway
-                setIsGenerating(false);
-                setStatusMessage("");
-            };
+            img.onload = () => { setGeneratedImage(finalUrl); setIsGenerating(false); setStatusMessage(""); if (isEdit) setEditPrompt(""); };
+            img.onerror = () => { setGeneratedImage(finalUrl); setIsGenerating(false); setStatusMessage(""); };
             img.src = finalUrl;
 
         } catch (err: any) {
@@ -320,6 +307,64 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
             setIsGenerating(false);
         }
     };
+
+    // ... UI Render ...
+
+    // In Sidebar, add Style Selector
+    /*
+    // ... previous JSX ...
+    // ...
+    */
+
+    /*
+                     {/* PHOTO STYLE SELECTOR *\}
+                    <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-4 space-y-3">
+                        <div className="flex justify-between items-center">
+                            <label className="text-sm font-bold text-orange-500 flex items-center gap-2">
+                                <Camera size={16} /> Estilo de Foto
+                            </label>
+                        </div>
+                        <div className="flex gap-2">
+                            <button onClick={() => setPhotoStyle('professional')} className={`flex-1 py-3 px-2 rounded-xl border flex flex-col items-center gap-2 transition-all ${photoStyle === 'professional' ? 'bg-zinc-800 border-orange-500/50 text-white' : 'bg-transparent border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}>
+                                <Camera size={20} />
+                                <span className="text-[10px] font-bold uppercase">ULTRA CAM</span>
+                            </button>
+                            <button onClick={() => setPhotoStyle('iphone')} className={`flex-1 py-3 px-2 rounded-xl border flex flex-col items-center gap-2 transition-all ${photoStyle === 'iphone' ? 'bg-zinc-800 border-orange-500/50 text-white' : 'bg-transparent border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}>
+                                <Smartphone size={20} />
+                                <span className="text-[10px] font-bold uppercase">IPHONE CAM</span>
+                            </button>
+                             <button onClick={() => setPhotoStyle('selfie')} className={`flex-1 py-3 px-2 rounded-xl border flex flex-col items-center gap-2 transition-all ${photoStyle === 'selfie' ? 'bg-zinc-800 border-orange-500/50 text-white' : 'bg-transparent border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}>
+                                <User size={20} />
+                                <span className="text-[10px] font-bold uppercase">MODO SELFIE</span>
+                            </button>
+                        </div>
+                    </div>
+    */
+
+    // ... UI Render ...
+
+    // In Sidebar, add Style Selector
+    /*
+                    <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-4 space-y-3">
+                         <label className="text-sm font-bold text-orange-500 flex items-center gap-2">
+                            <Camera size={16} /> Estilo de Foto
+                         </label>
+                         <div className="flex gap-2">
+                             <button onClick={() => setPhotoStyle('professional')} className={`flex-1 py-3 px-2 rounded-xl border flex flex-col items-center gap-2 transition-all ${photoStyle === 'professional' ? 'bg-zinc-800 border-orange-500/50 text-white' : 'bg-transparent border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}>
+                                 <Camera size={20} />
+                                 <span className="text-[10px] font-bold uppercase">ULTRA CAM</span>
+                             </button>
+                             <button onClick={() => setPhotoStyle('iphone')} className={`flex-1 py-3 px-2 rounded-xl border flex flex-col items-center gap-2 transition-all ${photoStyle === 'iphone' ? 'bg-zinc-800 border-orange-500/50 text-white' : 'bg-transparent border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}>
+                                 <Smartphone size={20} />
+                                 <span className="text-[10px] font-bold uppercase">IPHONE CAM</span>
+                             </button>
+                         </div>
+                    </div>
+    */
+
+    // In Preview Area, add Download Options
+
+
 
 
     if (!user) {
@@ -371,6 +416,31 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
                         </div>
                     </div>
 
+
+                    {/* PHOTO STYLE SELECTOR */}
+                    <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-4 space-y-3">
+                        <div className="flex justify-between items-center">
+                            <label className="text-sm font-bold text-orange-500 flex items-center gap-2">
+                                <Camera size={16} /> Estilo de Foto
+                            </label>
+                        </div>
+                        <div className="flex gap-2">
+                            <button onClick={() => setPhotoStyle('professional')} className={`flex-1 py-3 px-2 rounded-xl border flex flex-col items-center gap-2 transition-all ${photoStyle === 'professional' ? 'bg-zinc-800 border-orange-500/50 text-white' : 'bg-transparent border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}>
+                                <Camera size={20} />
+                                <span className="text-[10px] font-bold uppercase">ULTRA CAM</span>
+                            </button>
+                            <button onClick={() => setPhotoStyle('iphone')} className={`flex-1 py-3 px-2 rounded-xl border flex flex-col items-center gap-2 transition-all ${photoStyle === 'iphone' ? 'bg-zinc-800 border-orange-500/50 text-white' : 'bg-transparent border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}>
+                                <Smartphone size={20} />
+                                <span className="text-[10px] font-bold uppercase">IPHONE CAM</span>
+                            </button>
+                            <button onClick={() => setPhotoStyle('selfie')} className={`flex-1 py-3 px-2 rounded-xl border flex flex-col items-center gap-2 transition-all ${photoStyle === 'selfie' ? 'bg-zinc-800 border-orange-500/50 text-white' : 'bg-transparent border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}>
+                                <User size={20} />
+                                <span className="text-[10px] font-bold uppercase">MODO SELFIE</span>
+                            </button>
+                        </div>
+                    </div>
+
+
                     {/* 2. RATIO (MOVED HERE) */}
                     <div className="flex justify-between gap-1">
                         {ratios.map(r => (
@@ -414,6 +484,9 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
                                     {referenceImages.map((img, i) => (
                                         <div key={i} className="w-20 h-20 shrink-0 rounded-lg overflow-hidden border border-zinc-700 relative group">
                                             <img src={img.previewUrl} className="w-full h-full object-cover" />
+                                            <button onClick={() => removeReferenceImage(i)} className="absolute top-1 right-1 p-1 bg-black/60 rounded-full opacity-0 group-hover:opacity-100 transition-all text-white hover:bg-black/80 hover:text-red-500">
+                                                <X size={12} />
+                                            </button>
                                         </div>
                                     ))}
                                     <input type="file" ref={referenceInputRef} className="hidden" accept="image/*" multiple onChange={handleReferenceUpload} />
@@ -448,73 +521,83 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
                                     Detalhes Ultra
                                 </label>
 
-                                {/* Nicho */}
-                                <div className="relative">
-                                    <Briefcase size={14} className="absolute left-3 top-3 text-zinc-500" />
-                                    <input
-                                        type="text"
-                                        value={niche}
-                                        onChange={(e) => setNiche(e.target.value)}
-                                        placeholder="Nicho (Ex: Odontologia, Marketing...)"
-                                        className="w-full bg-black/40 border border-zinc-800 rounded-xl py-2 pl-9 pr-3 text-sm focus:outline-none focus:border-orange-500/50 transition-colors"
-                                    />
-                                </div>
+                                {/* Unified Single Block */}
+                                <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-5 flex flex-col gap-5">
 
-                                {/* Ambiente */}
-                                <div className="relative">
-                                    <MapPin size={14} className="absolute left-3 top-3 text-zinc-500" />
-                                    <input
-                                        type="text"
-                                        value={environment}
-                                        onChange={(e) => setEnvironment(e.target.value)}
-                                        placeholder="Ambiente (Opcional)..."
-                                        className="w-full bg-black/40 border border-zinc-800 rounded-xl py-2 pl-9 pr-3 text-sm focus:outline-none focus:border-orange-500/50 transition-colors"
-                                    />
-                                </div>
-
-                                {/* Descrição Principal */}
-                                <div className="relative">
-                                    <Shirt size={14} className="absolute left-3 top-3 z-10 text-zinc-500" />
-                                    <textarea
-                                        value={description}
-                                        onChange={(e) => setDescription(e.target.value)}
-                                        className="w-full h-24 bg-black/40 border border-zinc-800 rounded-xl py-2 pl-9 pr-3 text-sm focus:outline-none focus:border-orange-500/50 resize-none custom-scrollbar"
-                                        placeholder="Pose, roupa e estilo..."
-                                    />
-                                </div>
-
-                                {/* Camera Shot & Angle Enquadramento */}
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] uppercase tracking-wider font-bold text-zinc-500 ml-1">Enquadramento</label>
-                                        <select
-                                            value={cameraShot}
-                                            onChange={(e) => setCameraShot(e.target.value)}
-                                            className="w-full bg-black/40 border border-zinc-800 rounded-lg py-2 px-2 text-xs focus:outline-none focus:border-orange-500/50 text-zinc-300"
-                                        >
-                                            <option value="">Padrão (Automático)</option>
-                                            <option value="Extreme Close-Up">Plano Detalhe (Olhos/Boca)</option>
-                                            <option value="Close-Up">Close-Up (Rosto)</option>
-                                            <option value="Medium Shot">Plano Médio (Cintura pra cima)</option>
-                                            <option value="Cowboy Shot">Plano Americano (Joelho pra cima)</option>
-                                            <option value="Full Shot">Plano Geral (Corpo Inteiro)</option>
-                                            <option value="Wide Shot">Plano Aberto (Cenário amplo)</option>
-                                        </select>
+                                    {/* SECTION 1: CONTEXT */}
+                                    <div className="space-y-4">
+                                        <div className="relative">
+                                            <Briefcase size={14} className="absolute left-3 top-3 text-zinc-500" />
+                                            <input
+                                                type="text"
+                                                value={niche}
+                                                onChange={(e) => setNiche(e.target.value)}
+                                                placeholder="Nicho (Ex: Odontologia, Marketing...)"
+                                                className="w-full bg-black/40 border border-zinc-800 rounded-xl py-2 pl-9 pr-3 text-sm focus:outline-none focus:border-orange-500/50 transition-colors"
+                                            />
+                                        </div>
+                                        <div className="relative">
+                                            <MapPin size={14} className="absolute left-3 top-3 text-zinc-500" />
+                                            <input
+                                                type="text"
+                                                value={environment}
+                                                onChange={(e) => setEnvironment(e.target.value)}
+                                                placeholder="Ambiente (Opcional)..."
+                                                className="w-full bg-black/40 border border-zinc-800 rounded-xl py-2 pl-9 pr-3 text-sm focus:outline-none focus:border-orange-500/50 transition-colors"
+                                            />
+                                        </div>
+                                        <div className="relative">
+                                            <Shirt size={14} className="absolute left-3 top-3 z-10 text-zinc-500" />
+                                            <textarea
+                                                value={description}
+                                                onChange={(e) => setDescription(e.target.value)}
+                                                className="w-full h-24 bg-black/40 border border-zinc-800 rounded-xl py-2 pl-9 pr-3 text-sm focus:outline-none focus:border-orange-500/50 resize-none custom-scrollbar"
+                                                placeholder="Pose, roupa e estilo..."
+                                            />
+                                        </div>
                                     </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] uppercase tracking-wider font-bold text-zinc-500 ml-1">Ângulo</label>
-                                        <select
-                                            value={cameraAngle}
-                                            onChange={(e) => setCameraAngle(e.target.value)}
-                                            className="w-full bg-black/40 border border-zinc-800 rounded-lg py-2 px-2 text-xs focus:outline-none focus:border-orange-500/50 text-zinc-300"
-                                        >
-                                            <option value="">Padrão (Nível dos Olhos)</option>
-                                            <option value="Eye Level">Nível dos Olhos</option>
-                                            <option value="High Angle">Plongée (De cima pra baixo)</option>
-                                            <option value="Low Angle">Contra-Plongée (De baixo pra cima)</option>
-                                            <option value="Dutch Angle">Inclinado (Dutch Angle)</option>
-                                            <option value="Over The Shoulder">Sobre o Ombro</option>
-                                        </select>
+
+                                    <div className="h-px bg-zinc-800/50 w-full" />
+
+                                    {/* SECTION 2: CAMERA */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2 flex flex-col">
+                                            <label className="text-[10px] uppercase tracking-wider font-bold text-zinc-500 ml-1">Enquadramento</label>
+                                            <div className="relative">
+                                                <select
+                                                    value={cameraShot}
+                                                    onChange={(e) => setCameraShot(e.target.value)}
+                                                    className="w-full bg-black/40 border border-zinc-800 rounded-xl py-2.5 px-3 text-xs focus:outline-none focus:border-orange-500/50 text-zinc-300 appearance-none cursor-pointer"
+                                                >
+                                                    <option value="">Padrão (Automático)</option>
+                                                    <option value="Extreme Close-Up">Plano Detalhe</option>
+                                                    <option value="Close-Up">Close-Up (Rosto)</option>
+                                                    <option value="Medium Shot">Plano Médio</option>
+                                                    <option value="Cowboy Shot">Plano Americano</option>
+                                                    <option value="Full Shot">Plano Geral</option>
+                                                    <option value="Wide Shot">Plano Aberto</option>
+                                                </select>
+                                                <ChevronRight className="absolute right-3 top-3 text-zinc-600 rotate-90 pointer-events-none" size={14} />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2 flex flex-col">
+                                            <label className="text-[10px] uppercase tracking-wider font-bold text-zinc-500 ml-1">Ângulo</label>
+                                            <div className="relative">
+                                                <select
+                                                    value={cameraAngle}
+                                                    onChange={(e) => setCameraAngle(e.target.value)}
+                                                    className="w-full bg-black/40 border border-zinc-800 rounded-xl py-2.5 px-3 text-xs focus:outline-none focus:border-orange-500/50 text-zinc-300 appearance-none cursor-pointer"
+                                                >
+                                                    <option value="">Padrão (Nível Olhos)</option>
+                                                    <option value="Eye Level">Nível dos Olhos</option>
+                                                    <option value="High Angle">Plongée (Alto)</option>
+                                                    <option value="Low Angle">Contra-Plongée (Baixo)</option>
+                                                    <option value="Dutch Angle">Inclinado</option>
+                                                    <option value="Over The Shoulder">Sobre o Ombro</option>
+                                                </select>
+                                                <ChevronRight className="absolute right-3 top-3 text-zinc-600 rotate-90 pointer-events-none" size={14} />
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -572,8 +655,8 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
                                 <img src={generatedImage} className="max-w-full max-h-full object-contain rounded-lg shadow-2xl shadow-black" />
 
                                 <div className="absolute top-6 right-6 flex gap-2">
-                                    <a href={generatedImage} download="ultragen_result.png" target="_blank" className="p-2 bg-black/50 backdrop-blur text-white rounded-lg border border-white/10 hover:bg-white hover:text-black transition-colors">
-                                        <Download size={20} />
+                                    <a href={generatedImage} download={`ultragen_${Date.now()}_hq.jpg`} className="flex items-center gap-2 px-4 py-2 bg-black/60 backdrop-blur text-white rounded-lg border border-white/10 hover:bg-white hover:text-black transition-colors font-bold text-xs shadow-lg">
+                                        <Download size={16} /> Baixar Imagem
                                     </a>
                                 </div>
                             </div>

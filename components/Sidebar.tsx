@@ -149,18 +149,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange }) =
           />
         </div>
 
-        {/* Admin Dashboard Temporarily Disabled
+
         {user?.email === 'othonbrian@gmail.com' && (
           <div className="pt-4 mt-4 border-t border-zinc-800 hidden lg:block">
-            <NavItem
-              icon={<Zap size={24} className="lg:w-5 lg:h-5 text-red-500" />}
-              label="Admin"
-              active={currentView === 'admin'}
-              onClick={() => onViewChange('admin')}
-            />
+            <div onClick={() => onViewChange('admin')} className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all group cursor-pointer ${currentView === 'admin' ? 'bg-white text-black' : 'text-zinc-500 hover:bg-zinc-900 hover:text-white'}`}>
+              <Zap size={20} className={currentView === 'admin' ? 'text-black' : 'text-red-500'} />
+              <span className="text-sm font-medium">Admin</span>
+            </div>
           </div>
         )}
-        */}
+
       </nav>
 
       {/* User Mini Profile */}
