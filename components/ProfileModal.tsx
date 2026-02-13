@@ -6,9 +6,10 @@ import { X, User, Lock, CreditCard, Upload, Camera, Loader2, LogOut } from 'luci
 interface ProfileModalProps {
     isOpen: boolean;
     onClose: () => void;
+    onNavigate: (view: any) => void;
 }
 
-export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
+export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, onNavigate }) => {
     const { user, fullName, avatarUrl, plan, refreshCredits } = useAuth();
     const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'subscription'>('profile');
 
@@ -323,7 +324,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                                         <p className="text-sm text-zinc-400">
                                             Faça o upgrade para desbloquear recursos exclusivos e gerações ilimitadas.
                                         </p>
-                                        <button className="w-full py-3 bg-white text-black hover:bg-zinc-200 rounded-lg font-medium transition-colors text-sm">
+                                        <button
+                                            onClick={() => { onClose(); onNavigate('pricing'); }}
+                                            className="w-full py-3 bg-white text-black hover:bg-zinc-200 rounded-lg font-medium transition-colors text-sm"
+                                        >
                                             Ver Planos
                                         </button>
                                     </div>

@@ -290,7 +290,7 @@ export const analyzeStyleReference = async (imageFile: File): Promise<string> =>
 
 
 
-export const generateImageFromText = async (prompt: string, options?: { aspectRatio?: string, referenceImages?: Array<{ data: string, mimeType: string }> }): Promise<string> => {
+export const generateImageFromText = async (prompt: string, options?: { aspectRatio?: string, referenceImages?: Array<{ data: string, mimeType: string }>, highRes?: boolean }): Promise<string> => {
   return await generateWithRetry(async () => {
     // Configuration for the requested model
     const config: any = {};
@@ -301,10 +301,9 @@ export const generateImageFromText = async (prompt: string, options?: { aspectRa
       };
     }
 
-    /* 
-       User has specifically requested 'gemini-3-pro-image-preview'.
-       This model is used via the generateContent endpoint with imageConfig.
-    */
+    // Select model based on resolution request
+    // "imagen-4.0-ultra-generate-001" is the high-fidelity model likely supporting higher res/quality
+    const modelName = options?.highRes ? "imagen-4.0-ultra-generate-001" : "gemini-3-pro-image-preview";
 
     // Construct parts: Text prompt is mandatory
     const inputParts: any[] = [{ text: prompt }];
@@ -323,7 +322,7 @@ export const generateImageFromText = async (prompt: string, options?: { aspectRa
     }
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-pro-image-preview",
+      model: modelName,
       contents: {
         parts: inputParts
       },
@@ -338,6 +337,6 @@ export const generateImageFromText = async (prompt: string, options?: { aspectRa
         }
       }
     }
-    throw new Error("O modelo gemini-3-pro-image-preview não retornou dados de imagem.");
+    throw new Error(`O modelo ${modelName} não retornou dados de imagem.`);
   });
 };

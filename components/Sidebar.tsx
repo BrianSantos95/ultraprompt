@@ -85,7 +85,7 @@ const UserProfile = ({ currentView, onViewChange }: any) => {
         </button>
       </div>
 
-      <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
+      <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} onNavigate={onViewChange} />
     </>
   );
 };

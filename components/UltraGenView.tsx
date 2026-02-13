@@ -44,6 +44,7 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
     // Edit & Settings
     const [editPrompt, setEditPrompt] = useState('');
     const [ratio, setRatio] = useState<AspectRatio>('4:5');
+    const [isHighRes, setIsHighRes] = useState(false);
 
     // Execution State
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -286,7 +287,8 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
 
             const baseUrl = await generateImageFromText(finalPromptToUse, {
                 aspectRatio: ratio,
-                referenceImages: referenceImagesPayload
+                referenceImages: referenceImagesPayload,
+                highRes: isHighRes
             });
 
             // ... same finishing logic
@@ -440,6 +442,17 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
                         </div>
                     </div>
 
+
+
+                    {/* RESOLUTION SELECTOR */}
+                    <div className="flex p-1 bg-zinc-900 border border-zinc-800 rounded-xl">
+                        <button onClick={() => setIsHighRes(false)} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${!isHighRes ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-white'}`}>
+                            <Zap size={14} /> 1k (Padrão)
+                        </button>
+                        <button onClick={() => setIsHighRes(true)} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${isHighRes ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-white'}`}>
+                            <Sparkles size={14} className="text-orange-500" /> 2k (Ultra)
+                        </button>
+                    </div>
 
                     {/* 2. RATIO (MOVED HERE) */}
                     <div className="flex justify-between gap-1">
@@ -638,7 +651,7 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
                             disabled={isGenerating || isAnalyzing}
                             className={`w-full py-3 rounded-xl font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg mt-4 ${isGenerating ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' : 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white shadow-orange-900/20'}`}
                         >
-                            {isGenerating || isAnalyzing ? <Loader2 size={18} className="animate-spin" /> : <Wand2 size={18} />}
+                            {isGenerating || isAnalyzing ? <Loader2 size={18} className="animate-spin" /> : <Zap size={18} />}
                             {isGenerating || isAnalyzing ? "Gerando imagem..." : "Gerar Imagem"}
                         </button>
                     </div>
@@ -691,7 +704,7 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
                     ) : (
                         <div className="flex-1 flex flex-col items-center justify-center text-zinc-600 opacity-50 space-y-4">
                             <div className="w-24 h-24 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center">
-                                <Wand2 size={40} />
+                                <Zap size={40} />
                             </div>
                             <p className="text-sm font-medium">Preencha os detalhes e clique em Gerar</p>
                         </div>
