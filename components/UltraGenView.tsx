@@ -450,7 +450,7 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
                             <Zap size={14} /> 1k (Padrão)
                         </button>
                         <button onClick={() => setIsHighRes(true)} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${isHighRes ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-white'}`}>
-                            <Sparkles size={14} className="text-orange-500" /> 2k (Ultra)
+                            <Zap size={14} className="text-orange-500 fill-orange-500" /> 2k (Ultra)
                         </button>
                     </div>
 
