@@ -171,10 +171,29 @@ export const AdminDashboard: React.FC = () => {
         setError(null);
         console.log("AdminDashboard: Iniciando busca de dados...");
 
+        // DEBUG: Verificar se as variáveis de ambiente estão carregadas
         try {
-            // Timeout de 15 segundos para evitar ficar carregando para sempre
+            const client = supabase as any;
+            console.log("DEBUG CONFIG URL:", client.supabaseUrl);
+            console.log("DEBUG CONFIG KEY LEN:", client.supabaseKey?.length);
+        } catch (e) {
+            console.error("Erro ao ler config supabase", e);
+        }
+
+        try {
+            // Check session explicitly
+            const { data: { session } } = await supabase.auth.getSession();
+            console.log("DEBUG SESSION:", session ? "Active" : "None", session?.user?.email);
+
+            if (!session) {
+                setError("Sessão inválida ou expirada. Tente recarregar a página.");
+                setLoading(false);
+                return;
+            }
+
+            // Timeout de 30 segundos
             const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Tempo limite excedido (15s). Verifique sua conexão.')), 15000)
+                setTimeout(() => reject(new Error('Tempo limite excedido (30s). O banco de dados não respondeu.')), 30000)
             );
 
             const dataPromise = supabase
