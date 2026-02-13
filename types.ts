@@ -50,3 +50,13 @@ export interface GeneratedImage {
   settings: UltraGenSettings;
   timestamp: number;
 }
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  full_name?: string;
+  avatar_url?: string;
+  credits: number;
+  subscription_tier: string;
+  created_at: string;
+}

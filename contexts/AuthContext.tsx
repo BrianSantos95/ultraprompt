@@ -7,6 +7,8 @@ interface AuthContextType {
     loading: boolean;
     credits: number;
     plan: string;
+    fullName: string;
+    avatarUrl: string;
     hasLifetimePrompt: boolean;
     refreshCredits: () => Promise<void>;
 }
@@ -16,6 +18,8 @@ const AuthContext = createContext<AuthContextType>({
     loading: true,
     credits: 0,
     plan: 'free',
+    fullName: '',
+    avatarUrl: '',
     hasLifetimePrompt: false,
     refreshCredits: async () => { },
 });
@@ -25,6 +29,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [loading, setLoading] = useState(true);
     const [credits, setCredits] = useState(0);
     const [plan, setPlan] = useState('free');
+    const [fullName, setFullName] = useState('');
+    const [avatarUrl, setAvatarUrl] = useState('');
     const [hasLifetimePrompt, setHasLifetimePrompt] = useState(false);
 
     const refreshCredits = async () => {
@@ -32,13 +38,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const { data, error } = await supabase
             .from('profiles')
-            .select('credits, subscription_tier, has_lifetime_prompt, is_banned')
+            .select('credits, subscription_tier, has_lifetime_prompt, is_banned, full_name, avatar_url')
             .eq('id', user.id)
             .single();
 
         if (data && !error) {
             setCredits(data.credits);
             setPlan(data.subscription_tier || 'free');
+            setFullName(data.full_name || '');
+            setAvatarUrl(data.avatar_url || '');
             setHasLifetimePrompt(!!data.has_lifetime_prompt);
             if (data.is_banned) {
                 console.warn("User is banned");
@@ -75,7 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // We will rely on manual updates or simpler polling if needed.
 
     return (
-        <AuthContext.Provider value={{ user, loading, credits, plan, hasLifetimePrompt, refreshCredits }}>
+        <AuthContext.Provider value={{ user, loading, credits, plan, hasLifetimePrompt, fullName, avatarUrl, refreshCredits }}>
             {children}
         </AuthContext.Provider>
     );

@@ -16,8 +16,11 @@ interface SidebarProps {
   onViewChange: (view: any) => void;
 }
 
+import { ProfileModal } from './ProfileModal';
+
 const UserProfile = ({ currentView, onViewChange }: any) => {
-  const { user, credits, plan } = useAuth();
+  const { user, credits, plan, fullName, avatarUrl } = useAuth();
+  const [isProfileModalOpen, setIsProfileModalOpen] = React.useState(false);
 
   if (!user) {
     return (
@@ -31,44 +34,59 @@ const UserProfile = ({ currentView, onViewChange }: any) => {
   }
 
   return (
-    <div className="space-y-3">
-      {/* Credits Display */}
-      <div className="bg-zinc-900/50 rounded-xl p-3 border border-zinc-800 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-xs font-bold text-zinc-400">
-          <Zap size={14} className="text-orange-500 fill-orange-500" />
-          Créditos
+    <>
+      <div className="space-y-3">
+        {/* Credits Display */}
+        <div className="bg-zinc-900/50 rounded-xl p-3 border border-zinc-800 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs font-bold text-zinc-400">
+            <Zap size={14} className="text-orange-500 fill-orange-500" />
+            Créditos
+          </div>
+          <span className="text-sm font-bold text-white">{credits}</span>
         </div>
-        <span className="text-sm font-bold text-white">{credits}</span>
-      </div>
 
-      {/* Profile Info */}
-      <div className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-zinc-900/50 transition-colors group relative">
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-xs font-bold text-white shadow-lg shadow-orange-900/20">
-          {user.email?.charAt(0).toUpperCase()}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium text-white truncate">{user.email}</p>
-          <p className="text-[10px] text-zinc-500 truncate capitalize">{plan || 'Free Plan'}</p>
-        </div>
-        <button
-          onClick={async () => {
-            await supabase.auth.signOut();
-            window.location.reload();
-          }}
-          className="absolute right-2 opacity-0 group-hover:opacity-100 p-1.5 hover:bg-white/10 rounded-md text-zinc-400 hover:text-white transition-all"
-          title="Sair"
+        {/* Profile Info - Click to Open Modal */}
+        <div
+          onClick={() => setIsProfileModalOpen(true)}
+          className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-zinc-900/50 transition-colors group relative cursor-pointer"
         >
-          <LogOut size={14} />
+          <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden border border-zinc-700 flex-shrink-0">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-xs font-bold text-white shadow-lg shadow-orange-900/20">
+                {user.email?.charAt(0).toUpperCase()}
+              </div>
+            )}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-white truncate">{fullName || user.email}</p>
+            <p className="text-[10px] text-zinc-500 truncate capitalize">{plan === 'pro' ? 'Ultra Pro' : 'Free Plan'}</p>
+          </div>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent modal opening
+              supabase.auth.signOut().then(() => window.location.reload());
+            }}
+            className="absolute right-2 opacity-0 group-hover:opacity-100 p-1.5 hover:bg-white/10 rounded-md text-zinc-400 hover:text-white transition-all"
+            title="Sair"
+          >
+            <LogOut size={14} />
+          </button>
+        </div>
+
+        <button
+          onClick={() => onViewChange('pricing')}
+          className="w-full py-2 text-xs font-bold text-black bg-white hover:bg-zinc-200 rounded-lg transition-colors"
+        >
+          Fazer Upgrade
         </button>
       </div>
 
-      <button
-        onClick={() => onViewChange('pricing')}
-        className="w-full py-2 text-xs font-bold text-black bg-white hover:bg-zinc-200 rounded-lg transition-colors"
-      >
-        Fazer Upgrade
-      </button>
-    </div>
+      <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
+    </>
   );
 };
 

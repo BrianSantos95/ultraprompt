@@ -13,23 +13,32 @@ type View = 'home' | 'ultraprompt' | 'ultragen' | 'pricing' | 'login';
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View | 'admin'>('home');
 
-  // Listen for hash changes to handle redirects
+  // Listen for URL changes (Back/Forward arrows)
   React.useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash.slice(1);
-      if (['home', 'ultraprompt', 'ultragen', 'pricing', 'login', 'admin'].includes(hash)) {
-        setCurrentView(hash as View | 'admin');
+    const handlePathChange = () => {
+      // Extract view from path (e.g. "/ultragen" -> "ultragen")
+      const path = window.location.pathname.slice(1); // remove leading slash
+      const validViews = ['home', 'ultraprompt', 'ultragen', 'pricing', 'login', 'admin'];
+
+      if (path === '' || path === '/') {
+        setCurrentView('home');
+      } else if (validViews.includes(path)) {
+        setCurrentView(path as View | 'admin');
       }
     };
 
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    // Handle initial load
+    handlePathChange();
+
+    window.addEventListener('popstate', handlePathChange);
+    return () => window.removeEventListener('popstate', handlePathChange);
   }, []);
 
-  // Handle navigation and update URL hash
+  // Handle navigation and update URL without #
   const handleNavigation = (view: View | 'admin') => {
     setCurrentView(view);
-    window.location.hash = view;
+    const path = view === 'home' ? '/' : `/${view}`;
+    window.history.pushState({}, '', path);
   };
 
   const renderView = () => {
