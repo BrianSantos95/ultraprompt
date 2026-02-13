@@ -67,8 +67,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 if (mounted) {
                     setUser(session?.user ?? null);
                     if (session?.user) {
+                        // Revertendo para await para garantir dados completos antes de liberar a tela
                         await refreshCredits(session.user.id);
+                    } else {
+                        setCredits(0);
+                        setPlan('free');
                     }
+                    setLoading(false);
                 }
             } catch (error) {
                 console.error("Session check failed", error);

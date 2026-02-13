@@ -169,13 +169,24 @@ export const AdminDashboard: React.FC = () => {
     const fetchData = async () => {
         setLoading(true);
         setError(null);
+        console.log("AdminDashboard: Iniciando busca de dados...");
+
         try {
-            const { data, error } = await supabase
+            // Timeout de 15 segundos para evitar ficar carregando para sempre
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Tempo limite excedido (15s). Verifique sua conexão.')), 15000)
+            );
+
+            const dataPromise = supabase
                 .from('profiles')
                 .select('*')
                 .order('created_at', { ascending: false });
 
+            const { data, error } = await Promise.race([dataPromise, timeoutPromise]) as any;
+
             if (error) throw error;
+
+            console.log("AdminDashboard: Dados recebidos", data?.length);
 
             if (data) {
                 setProfiles(data);
@@ -183,7 +194,7 @@ export const AdminDashboard: React.FC = () => {
             }
         } catch (err: any) {
             console.error('Error fetching admin data:', err);
-            setError(`Erro ao carregar dados: ${err.message || 'Verifique as permissões RLS no Supabase.'}`);
+            setError(`Erro: ${err.message || 'Falha na comunicação com Supabase.'}`);
         } finally {
             setLoading(false);
         }
