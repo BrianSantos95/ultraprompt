@@ -63,6 +63,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Initial Session Check
         const initSession = async () => {
             try {
+                // DEBUG: Verificar configuração na inicialização
+                console.log("AUTH DEBUG URL:", (supabase as any).supabaseUrl);
+
                 const { data: { session } } = await supabase.auth.getSession();
                 if (mounted) {
                     setUser(session?.user ?? null);
