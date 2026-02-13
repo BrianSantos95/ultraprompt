@@ -33,13 +33,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [avatarUrl, setAvatarUrl] = useState('');
     const [hasLifetimePrompt, setHasLifetimePrompt] = useState(false);
 
-    const refreshCredits = async () => {
-        if (!user) return;
+    const refreshCredits = async (manualUserId?: string) => {
+        const targetId = manualUserId || user?.id;
+        if (!targetId) return;
+
+        console.log("Fetching profile for:", targetId);
 
         const { data, error } = await supabase
             .from('profiles')
             .select('credits, subscription_tier, has_lifetime_prompt, is_banned, full_name, avatar_url')
-            .eq('id', user.id)
+            .eq('id', targetId)
             .single();
 
         if (data && !error) {
@@ -55,28 +58,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     useEffect(() => {
+        let mounted = true;
+
         // Initial Session Check
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setUser(session?.user ?? null);
-            if (session?.user) {
-                refreshCredits();
+        const initSession = async () => {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (mounted) {
+                    setUser(session?.user ?? null);
+                    if (session?.user) {
+                        await refreshCredits(session.user.id);
+                    }
+                }
+            } catch (error) {
+                console.error("Session check failed", error);
+            } finally {
+                if (mounted) setLoading(false);
             }
-            setLoading(false);
-        });
+        };
+
+        initSession();
 
         // Listen for Auth Changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            setUser(session?.user ?? null);
-            if (session?.user) {
-                await refreshCredits();
-            } else {
-                setCredits(0);
-                setPlan('free');
+            if (mounted) {
+                setUser(session?.user ?? null);
+                if (session?.user) {
+                    await refreshCredits(session.user.id);
+                } else {
+                    setCredits(0);
+                    setPlan('free');
+                }
+                setLoading(false);
             }
-            setLoading(false);
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            mounted = false;
+            subscription.unsubscribe();
+        };
     }, []);
 
     // Realtime subscription removed to prevent app freeze.
