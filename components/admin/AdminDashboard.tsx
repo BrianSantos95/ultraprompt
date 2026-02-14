@@ -143,7 +143,7 @@ export const AdminDashboard: React.FC = () => {
     const [editingUser, setEditingUser] = useState<Profile | null>(null);
     const [banningUser, setBanningUser] = useState<Profile | null>(null);
     const [banConfirmation, setBanConfirmation] = useState('');
-    const [editForm, setEditForm] = useState({ plan: 'free', credits: 0 });
+    const [editForm, setEditForm] = useState({ plan: 'free', credits: 0, hasLifetime: false });
 
     const [stats, setStats] = useState<DashboardStats>({
         totalUsers: 0,
@@ -238,7 +238,8 @@ export const AdminDashboard: React.FC = () => {
                 .from('profiles')
                 .update({
                     subscription_tier: editForm.plan,
-                    credits: editForm.credits
+                    credits: editForm.credits,
+                    has_lifetime_prompt: editForm.hasLifetime
                 })
                 .eq('id', editingUser.id);
 
@@ -246,7 +247,7 @@ export const AdminDashboard: React.FC = () => {
 
             const updatedProfiles = profiles.map(p =>
                 p.id === editingUser.id
-                    ? { ...p, subscription_tier: editForm.plan, credits: editForm.credits }
+                    ? { ...p, subscription_tier: editForm.plan, credits: editForm.credits, has_lifetime_prompt: editForm.hasLifetime }
                     : p
             );
             setProfiles(updatedProfiles);
@@ -287,7 +288,8 @@ export const AdminDashboard: React.FC = () => {
         setEditingUser(profile);
         setEditForm({
             plan: profile.subscription_tier || 'free',
-            credits: profile.credits
+            credits: profile.credits,
+            hasLifetime: profile.has_lifetime_prompt
         });
     };
 
@@ -543,6 +545,18 @@ export const AdminDashboard: React.FC = () => {
                                     value={editForm.credits}
                                     onChange={e => setEditForm({ ...editForm, credits: parseInt(e.target.value) || 0 })}
                                 />
+                            </div>
+                            <div className="flex items-center gap-2 pt-2">
+                                <input
+                                    type="checkbox"
+                                    id="lifetime"
+                                    checked={editForm.hasLifetime}
+                                    onChange={e => setEditForm({ ...editForm, hasLifetime: e.target.checked })}
+                                    className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-orange-500 focus:ring-orange-500/20"
+                                />
+                                <label htmlFor="lifetime" className="text-sm font-medium text-zinc-300">
+                                    Liberar Ultraprompt Vitalício
+                                </label>
                             </div>
                         </div>
 
