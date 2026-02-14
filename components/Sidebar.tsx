@@ -163,14 +163,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange }) =
           badge="Novo"
         />
 
-        <div className="pt-4 mt-4 border-t border-zinc-800 block">
-          <NavItem
-            icon={<User size={24} className="lg:w-5 lg:h-5" />}
-            label="Planos"
-            active={currentView === 'pricing'}
-            onClick={() => onViewChange('pricing')}
-          />
-        </div>
+        <div className="hidden lg:block pt-4 mt-4 border-t border-zinc-800"></div>
+        <NavItem
+          icon={<User size={24} className="lg:w-5 lg:h-5" />}
+          label="Planos"
+          active={currentView === 'pricing'}
+          onClick={() => onViewChange('pricing')}
+        />
 
 
         {user?.email === 'othonbrian@gmail.com' && (
