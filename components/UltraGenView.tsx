@@ -161,7 +161,26 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
     // ... existing state
 
     const handleGenerate = async (isEdit: boolean) => {
-        // ... (validation checks same as before)
+        // 1. Validation Checks
+        if ((credits || 0) <= 0) {
+            setShowCreditModal(true);
+            return;
+        }
+
+        if (activeMode === 'visual' && referenceImages.length === 0 && specialistImages.length === 0) {
+            alert("Adicione pelo menos uma imagem de referência ou especialista.");
+            return;
+        }
+
+        if (activeMode === 'prompt' && !prompt.trim()) {
+            alert("Digite um prompt para gerar a imagem.");
+            return;
+        }
+
+        if (activeMode === 'ultra' && !description.trim()) {
+            alert("Descreva a pose e o estilo da imagem.");
+            return;
+        }
 
         setIsGenerating(true);
         setStatusMessage(isEdit ? "Aplicando edições..." : "Iniciando processo criativo...");
