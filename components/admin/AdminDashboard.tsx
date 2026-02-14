@@ -69,7 +69,7 @@ const PlanBadge = ({ plan }: { plan: string | null }) => {
             colorClass = 'bg-purple-900/30 text-purple-400 border-purple-800';
             label = 'Ultra Pro';
             break;
-        case 'Ultra Max':
+        case 'ultra-max':
             colorClass = 'bg-orange-900/30 text-orange-400 border-orange-800';
             label = 'Ultra Max';
             break;
@@ -159,8 +159,6 @@ export const AdminDashboard: React.FC = () => {
         if (user?.email === ADMIN_EMAIL) {
             fetchData();
         } else if (user) {
-            // Only set error if user exists but is not admin. 
-            // If user is null (loading), do nothing yet.
             setLoading(false);
             setError('Acesso negado. Apenas administradores podem ver esta página.');
         }
@@ -213,7 +211,7 @@ export const AdminDashboard: React.FC = () => {
                     subscribers++;
                     distribution.pro++;
                     break;
-                case 'Ultra Max':
+                case 'ultra-max':
                     mrr += 197.90;
                     subscribers++;
                     distribution.max++;
@@ -246,7 +244,6 @@ export const AdminDashboard: React.FC = () => {
 
             if (error) throw error;
 
-            // Update local state
             const updatedProfiles = profiles.map(p =>
                 p.id === editingUser.id
                     ? { ...p, subscription_tier: editForm.plan, credits: editForm.credits }
@@ -256,7 +253,6 @@ export const AdminDashboard: React.FC = () => {
             calculateStats(updatedProfiles);
             setEditingUser(null);
 
-            // If admin edited themselves, refresh local auth state immediately
             if (user && editingUser.id === user.id) {
                 await refreshCredits();
             }
@@ -301,7 +297,7 @@ export const AdminDashboard: React.FC = () => {
             (filterPlan === 'lifetime' && profile.has_lifetime_prompt) ||
             (filterPlan === 'Ultra Start' && profile.subscription_tier === 'Ultra Start') ||
             (filterPlan === 'Ultra Pro' && profile.subscription_tier === 'Ultra Pro') ||
-            (filterPlan === 'Ultra Max' && profile.subscription_tier === 'Ultra Max') ||
+            (filterPlan === 'ultra-max' && profile.subscription_tier === 'ultra-max') ||
             (filterPlan === 'free' && (!profile.subscription_tier || profile.subscription_tier === 'free')) ||
             (filterPlan === 'banned' && profile.is_banned);
 
@@ -407,7 +403,7 @@ export const AdminDashboard: React.FC = () => {
                         <option value="all">Todos os Planos</option>
                         <option value="Ultra Start">Ultra Start</option>
                         <option value="Ultra Pro">Ultra Pro</option>
-                        <option value="Ultra Max">Ultra Max</option>
+                        <option value="ultra-max">Ultra Max</option>
                         <option value="lifetime">Vitalício</option>
                         <option value="free">Gratuito</option>
                         <option value="banned">Banidos</option>
@@ -467,7 +463,7 @@ export const AdminDashboard: React.FC = () => {
                                         <td className="px-6 py-4 text-center font-mono text-zinc-500">
                                             {(() => {
                                                 const limits: Record<string, number> = {
-                                                    'Ultra Start': 20, 'Ultra Pro': 70, 'Ultra Max': 180, 'free': 20
+                                                    'Ultra Start': 20, 'Ultra Pro': 70, 'ultra-max': 180, 'free': 20
                                                 };
                                                 const limit = limits[profile.subscription_tier || 'free'] || 20;
                                                 return Math.max(0, limit - profile.credits);
@@ -536,7 +532,7 @@ export const AdminDashboard: React.FC = () => {
                                     <option value="free">Gratuito</option>
                                     <option value="Ultra Start">Ultra Start</option>
                                     <option value="Ultra Pro">Ultra Pro</option>
-                                    <option value="Ultra Max">Ultra Max</option>
+                                    <option value="ultra-max">Ultra Max</option>
                                 </select>
                             </div>
                             <div>

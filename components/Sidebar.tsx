@@ -62,7 +62,9 @@ const UserProfile = ({ currentView, onViewChange }: any) => {
 
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-white truncate">{fullName || user.email}</p>
-            <p className="text-[10px] text-zinc-500 truncate capitalize">{plan === 'pro' ? 'Ultra Pro' : 'Free Plan'}</p>
+            <p className="text-[10px] text-zinc-500 truncate capitalize">
+              {plan === 'ultra-max' ? 'Ultra Max' : plan === 'pro' ? 'Ultra Pro' : plan === 'free' ? 'Free Plan' : plan}
+            </p>
           </div>
 
           <button
