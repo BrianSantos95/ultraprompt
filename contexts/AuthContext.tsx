@@ -37,65 +37,106 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const targetId = manualUserId || user?.id;
         if (!targetId) return;
 
-        console.log("Fetching profile for:", targetId);
+        try {
+            console.log("DEBUG: Iniciando fetch do perfil...");
+            const fetchPromise = supabase
+                .from('profiles')
+                .select('credits, subscription_tier, has_lifetime_prompt, is_banned, full_name, avatar_url')
+                .eq('id', targetId)
+                .single();
 
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('credits, subscription_tier, has_lifetime_prompt, is_banned, full_name, avatar_url')
-            .eq('id', targetId)
-            .single();
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('TIMEOUT_5S: Supabase demorou muito para responder')), 5000)
+            );
 
-        if (data && !error) {
-            setCredits(data.credits);
-            setPlan(data.subscription_tier || 'free');
-            setFullName(data.full_name || '');
-            setAvatarUrl(data.avatar_url || '');
-            setHasLifetimePrompt(!!data.has_lifetime_prompt);
-            if (data.is_banned) {
-                console.warn("User is banned");
+            const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+
+            console.log("DEBUG: Fetch retornou:", { data, error });
+
+            if (data && !error) {
+                setCredits(data.credits);
+                setPlan(data.subscription_tier || 'free');
+                setFullName(data.full_name || '');
+                setAvatarUrl(data.avatar_url || '');
+                setHasLifetimePrompt(!!data.has_lifetime_prompt);
+                if (data.is_banned) {
+                    console.warn("User is banned");
+                }
+                console.log("Credits refreshed:", data.credits);
+            } else {
+                console.error("DEBUG: Falha ao carregar perfil (Erro ou vazio):", error);
             }
+        } catch (err: any) {
+            console.error("DEBUG: Erro CRÍTICO no refreshCredits:", err);
+            // alert(`Erro de Conexão: ${err.message}`);
         }
     };
 
     useEffect(() => {
         let mounted = true;
 
-        // Initial Session Check
-        const initSession = async () => {
+        // Initial Session Check with Retry Logic
+        const initSession = async (attempt = 1) => {
             try {
-                // DEBUG: Verificar configuração na inicialização
-                console.log("AUTH DEBUG URL:", (supabase as any).supabaseUrl);
+                console.log(`Checking session (attempt ${attempt})...`);
+                const { data: { session }, error } = await supabase.auth.getSession();
 
-                const { data: { session } } = await supabase.auth.getSession();
+                if (error) throw error;
+
                 if (mounted) {
-                    setUser(session?.user ?? null);
                     if (session?.user) {
-                        // Revertendo para await para garantir dados completos antes de liberar a tela
+                        console.log("Session found:", session.user.id);
+                        setUser(session.user);
                         await refreshCredits(session.user.id);
                     } else {
+                        console.log("No active session found.");
+                        setUser(null);
                         setCredits(0);
                         setPlan('free');
                     }
-                    setLoading(false);
                 }
-            } catch (error) {
-                console.error("Session check failed", error);
+            } catch (error: any) {
+                console.error(`Session check failed (attempt ${attempt}):`, error);
+
+                // Retry specifically on AbortError or network errors, up to 3 times
+                if (mounted && attempt < 3 && (error.name === 'AbortError' || error.message.includes('fetch'))) {
+                    console.log(`Retrying in ${attempt * 500}ms...`);
+                    setTimeout(() => initSession(attempt + 1), attempt * 500);
+                    return; // Don't set loading false yet
+                }
             } finally {
-                if (mounted) setLoading(false);
+                // Ensure loading is set to false only if we are done (success or max retries)
+                // If we are scheduling a retry, this finally block runs, but we want to keep loading true.
+                // However, since we return early in the retry block, we won't reach here if retrying?
+                // Wait, 'finally' runs even after return in try/catch. 
+                // So we need to check if we are retrying.
             }
+
+            if (mounted) setLoading(false);
         };
 
         initSession();
 
         // Listen for Auth Changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log(`AUTH EVENT: ${event}`, session?.user?.id); // Debug Log
+
             if (mounted) {
+                // Sempre atualizar o usuário se a sessão mudar
                 setUser(session?.user ?? null);
+
                 if (session?.user) {
-                    await refreshCredits(session.user.id);
-                } else {
+                    // Se temos usuário, tenta recarregar os dados
+                    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+                        await refreshCredits(session.user.id);
+                    }
+                } else if (event === 'SIGNED_OUT') {
+                    console.log("AUTH: Explicit SIGNED_OUT event received. Clearing user data.");
+                    // Só limpa os dados se for explicitamente um logou
                     setCredits(0);
                     setPlan('free');
+                    setFullName('');
+                    setAvatarUrl('');
                 }
                 setLoading(false);
             }

@@ -1,32 +1,49 @@
--- 1. Habilitar RLS na tabela profiles (caso não esteja)
+-- 1. Habilitar RLS na tabela profiles (garantia)
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
--- 2. Remover policies antigas que podem estar causando conflito ou lentidão (loop infinito)
--- Se der erro dizendo que não existe, pode ignorar
+-- 2. Limpar todas as policies antigas para evitar conflitos (Singular e Plural para garantir)
 DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON profiles;
 DROP POLICY IF EXISTS "Users can insert their own profile" ON profiles;
 DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
+
+-- Drops para Admin (cobrindo variações de nomes antigos)
 DROP POLICY IF EXISTS "Admins can view all profiles" ON profiles;
+DROP POLICY IF EXISTS "Admins can update all profiles" ON profiles;
+DROP POLICY IF EXISTS "Admin can view all profiles" ON profiles;
+DROP POLICY IF EXISTS "Admin can update all profiles" ON profiles;
 
--- 3. Criar policies otimizadas e sem recursão
+-- Outros drops de limpeza
+DROP POLICY IF EXISTS "Service role can do everything" ON profiles;
+DROP POLICY IF EXISTS "Enable read access for all users" ON profiles;
+DROP POLICY IF EXISTS "Enable insert for authenticated users only" ON profiles;
+DROP POLICY IF EXISTS "Enable update for users based on email" ON profiles;
 
--- Qualquer usuário logado pode ver seu próprio perfil
+-- 3. Criar Policy: Usuário vê seu próprio perfil
 CREATE POLICY "Users can view own profile" 
 ON profiles FOR SELECT 
 USING (auth.uid() = id);
 
--- O usuário pode atualizar seu próprio perfil
+-- 4. Criar Policy: Usuário atualiza seu próprio perfil
 CREATE POLICY "Users can update own profile" 
 ON profiles FOR UPDATE 
 USING (auth.uid() = id);
 
--- O Admin (identificado pelo email fixo no token) pode ver TODOS os perfis
--- Isso é ultra rápido e evita loops infinitos
+-- 5. Criar Policy: Usuário pode criar seu perfil (caso não exista)
+CREATE POLICY "Users can insert their own profile" 
+ON profiles FOR INSERT 
+WITH CHECK (auth.uid() = id);
+
+-- 6. Criar Policy: Admin (othonbrian@gmail.com) vê TODOS os perfis
 CREATE POLICY "Admin can view all profiles" 
 ON profiles FOR SELECT 
 USING (auth.jwt() ->> 'email' = 'othonbrian@gmail.com');
 
--- O Admin pode atualizar qualquer perfil (banir, dar créditos)
+-- 7. Criar Policy: Admin edita TODOS os perfis (dar créditos, banir, etc)
 CREATE POLICY "Admin can update all profiles" 
 ON profiles FOR UPDATE 
 USING (auth.jwt() ->> 'email' = 'othonbrian@gmail.com');
+
+-- 8. Garantir permissões básicas
+GRANT ALL ON profiles TO authenticated;
+GRANT ALL ON profiles TO service_role;

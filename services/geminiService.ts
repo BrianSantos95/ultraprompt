@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { PromptSettings, PromptResult, Language, DetailLevel } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
+const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || 'dummy_key_to_prevent_crash' });
 
 const processImageForGemini = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {

@@ -68,7 +68,10 @@ const UserProfile = ({ currentView, onViewChange }: any) => {
           <button
             onClick={(e) => {
               e.stopPropagation(); // Prevent modal opening
-              supabase.auth.signOut().then(() => window.location.reload());
+              // Force reload even if signOut fails
+              supabase.auth.signOut()
+                .then(() => window.location.reload())
+                .catch(() => window.location.reload());
             }}
             className="absolute right-2 opacity-0 group-hover:opacity-100 p-1.5 hover:bg-white/10 rounded-md text-zinc-400 hover:text-white transition-all"
             title="Sair"
