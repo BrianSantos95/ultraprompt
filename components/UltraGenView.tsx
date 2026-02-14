@@ -387,10 +387,10 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
                     if (onNavigate) onNavigate('pricing');
                 }}
             />
-            <div className="flex flex-col xl:flex-row gap-6 h-[calc(100vh-8rem)] min-h-[800px] animate-in fade-in duration-500 text-zinc-100">
+            <div className="flex flex-col xl:flex-row gap-6 xl:h-[calc(100vh-8rem)] h-auto min-h-[800px] animate-in fade-in duration-500 text-zinc-100 pb-20 xl:pb-0">
 
                 {/* --- LEFT SIDEBAR: CONTROLS --- */}
-                <div className="w-full xl:w-[480px] flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar pb-20">
+                <div className="w-full xl:w-[480px] flex flex-col gap-4 xl:overflow-y-auto pr-2 custom-scrollbar xl:pb-20">
 
                     {/* 1. SPECIALIST IDENTITY (ALWAYS VISIBLE) */}
                     <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-4 space-y-3">
@@ -659,7 +659,7 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
                 </div>
 
                 {/* --- RIGHT: PREVIEW & EDIT --- */}
-                <div className="flex-1 bg-black/40 border border-zinc-800/50 rounded-3xl overflow-hidden relative group flex flex-col">
+                <div className="flex-1 bg-black/40 border border-zinc-800/50 rounded-3xl overflow-hidden relative group flex flex-col min-h-[500px] xl:min-h-0">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-orange-900/10 via-transparent to-transparent opacity-50 pointer-events-none"></div>
 
                     {generatedImage ? (
