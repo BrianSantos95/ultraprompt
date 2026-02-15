@@ -289,8 +289,7 @@ export const generateImageFromText = async (prompt: string, options?: { aspectRa
 
     // Select model based on resolution request
     // "imagen-4.0-ultra-generate-001" is the high-fidelity model likely supporting higher res/quality
-    // For standard (1k), use "imagen-3.0-generate-001" for better speed/quality balance than 'preview' models
-    const modelName = options?.highRes ? "imagen-4.0-ultra-generate-001" : "imagen-3.0-generate-001";
+    const modelName = options?.highRes ? "imagen-4.0-ultra-generate-001" : "gemini-3-pro-image-preview";
 
     // Construct parts: Text prompt is mandatory
     const inputParts: any[] = [{ text: prompt }];
