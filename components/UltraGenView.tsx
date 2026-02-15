@@ -479,6 +479,9 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
                             )}
                             <input type="file" ref={specialistInputRef} className="hidden" accept="image/*" multiple onChange={(e) => { handleSpecialistUpload(e); e.target.value = ''; }} />
                         </div>
+                        <p className="text-xs text-zinc-500">
+                            Para maior fidelidade aos detalhes do rosto, adicione até 6 fotos variadas (ângulos e iluminação diferentes).
+                        </p>
                     </div>
 
 
@@ -778,7 +781,7 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
                         </div>
                     )}
                 </div>
-            </div>
+            </div >
         </>
     );
 };
