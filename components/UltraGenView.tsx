@@ -143,8 +143,8 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
                     let width = img.width;
                     let height = img.height;
 
-                    // Resize logic: Max 1536px on longest side to avoid API limits/timeouts
-                    const MAX_SIZE = 1536;
+                    // Resize logic: Max 1024px on longest side to avoid API limits/timeouts and improve iOS memory usage
+                    const MAX_SIZE = 1024;
                     if (width > height) {
                         if (width > MAX_SIZE) {
                             height *= MAX_SIZE / width;
@@ -465,7 +465,7 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
                                     <span className="text-[9px] text-zinc-500">Adicionar</span>
                                 </button>
                             )}
-                            <input type="file" ref={specialistInputRef} className="hidden" accept="image/*" multiple onChange={handleSpecialistUpload} />
+                            <input type="file" ref={specialistInputRef} className="hidden" accept="image/*" multiple onChange={(e) => { handleSpecialistUpload(e); e.target.value = ''; }} />
                         </div>
                     </div>
 
@@ -553,7 +553,7 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
                                             </button>
                                         </div>
                                     ))}
-                                    <input type="file" ref={referenceInputRef} className="hidden" accept="image/*" multiple onChange={handleReferenceUpload} />
+                                    <input type="file" ref={referenceInputRef} className="hidden" accept="image/*" multiple onChange={(e) => { handleReferenceUpload(e); e.target.value = ''; }} />
                                 </div>
                                 <p className="text-xs text-zinc-500">
                                     Use esta opção para gerar imagens que imitem o estilo ou a pose das referências acima.
@@ -698,6 +698,7 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
 
 
                         <button
+                            type="button"
                             onClick={() => handleGenerate(false)}
                             disabled={isGenerating || isAnalyzing}
                             className={`w-full py-3 rounded-xl font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg mt-4 ${isGenerating ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' : 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white shadow-orange-900/20'}`}
