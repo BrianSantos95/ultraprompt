@@ -33,12 +33,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [avatarUrl, setAvatarUrl] = useState('');
     const [hasLifetimePrompt, setHasLifetimePrompt] = useState(false);
 
+    const isRefreshingRef = React.useRef(false);
+
     const refreshCredits = async (manualUserId?: string) => {
         const targetId = manualUserId || user?.id;
         if (!targetId) return;
 
+        // Prevent concurrent refreshes
+        if (isRefreshingRef.current) {
+            console.log("DEBUG: Refresh already in progress, skipping.");
+            return;
+        }
+
         try {
+            isRefreshingRef.current = true;
             console.log("DEBUG: Iniciando fetch do perfil...");
+
             const fetchPromise = supabase
                 .from('profiles')
                 .select('credits, subscription_tier, has_lifetime_prompt, is_banned, full_name, avatar_url')
@@ -68,7 +78,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
         } catch (err: any) {
             console.error("DEBUG: Erro CRÍTICO no refreshCredits:", err);
-            // alert(`Erro de Conexão: ${err.message}`);
+        } finally {
+            isRefreshingRef.current = false;
         }
     };
 

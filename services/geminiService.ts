@@ -307,13 +307,19 @@ export const generateImageFromText = async (prompt: string, options?: { aspectRa
       });
     }
 
-    const response = await ai.models.generateContent({
+    const generatePromise = ai.models.generateContent({
       model: modelName,
       contents: {
         parts: inputParts
       },
       config: config
     });
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Timeout: A geração de imagem demorou mais de 60 segundos.")), 60000)
+    );
+
+    const response: any = await Promise.race([generatePromise, timeoutPromise]);
 
     const parts = response.candidates?.[0]?.content?.parts;
     if (parts) {
