@@ -4,7 +4,7 @@ import {
     Maximize, Smartphone, Monitor, RectangleVertical, Square,
     User, Download, Layers, RefreshCcw, Loader2, Camera,
     Sun, Moon, Zap, Palette, Aperture, Film, Play, Edit3,
-    Briefcase, MapPin, Shirt, Package, Type, ChevronRight
+    Briefcase, MapPin, Shirt, Package, Type, ChevronRight, AlertTriangle
 } from 'lucide-react';
 import { analyzeSpecialistIdentity, generateImageFromText, analyzeStyleReference } from '../services/geminiService';
 import { ImageReference, AspectRatio } from '../types';
@@ -368,7 +368,19 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
 
         } catch (err: any) {
             console.error(err);
-            setStatusMessage(`Erro: ${err.message || "Falha na geração"}`);
+            let msg = err.message || "Falha na geração";
+
+            // Detect Google Instability
+            if (msg.includes("503") || msg.includes("Unavailable") || msg.includes("Overloaded") || msg.includes("high demand")) {
+                msg = "⚠️ Instabilidade nos servidores do Google AI (Alta Demanda). Por favor, aguarde 1 ou 2 minutos e tente novamente. O problema não é no App.";
+            } else if (msg.includes("Timeout") || msg.includes("demorou muito")) {
+                msg = "⚠️ O Google demorou para responder. Tente novamente.";
+            }
+
+            setStatusMessage(msg);
+            // Clear message after 10s
+            setTimeout(() => setStatusMessage(""), 10000);
+
             setIsGenerating(false);
         }
     };
@@ -442,6 +454,22 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
 
     return (
         <>
+            {/* --- GLOBAL STATUS POPUP --- */}
+            {statusMessage && (statusMessage.startsWith("⚠️") || statusMessage.startsWith("Erro:")) && (
+                <div className={`fixed top-24 left-1/2 -translate-x-1/2 z-[100] px-6 py-4 rounded-xl backdrop-blur-md shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 max-w-lg border text-sm font-medium ${statusMessage.startsWith("⚠️")
+                        ? "bg-yellow-500/10 border-yellow-500/50 text-yellow-200"
+                        : "bg-red-500/10 border-red-500/50 text-red-200"
+                    }`}>
+                    <AlertTriangle className={`shrink-0 ${statusMessage.startsWith("⚠️") ? "text-yellow-500" : "text-red-500"}`} size={24} />
+                    <div className="flex-1">
+                        <p>{statusMessage}</p>
+                    </div>
+                    <button onClick={() => setStatusMessage("")} className="shrink-0 p-1 hover:bg-white/10 rounded-full transition-colors">
+                        <X size={16} />
+                    </button>
+                </div>
+            )}
+
             <InsufficientCreditsModal
                 isOpen={showCreditModal}
                 onClose={() => setShowCreditModal(false)}
