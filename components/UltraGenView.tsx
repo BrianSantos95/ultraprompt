@@ -490,6 +490,10 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
                             </label>
                         </div>
                         <div className="flex gap-2">
+                            <button onClick={() => setPhotoStyle('ultra_mode')} className={`flex-1 py-3 px-2 rounded-xl border flex flex-col items-center gap-2 transition-all ${photoStyle === 'ultra_mode' ? 'bg-zinc-800 border-orange-500/50 text-white' : 'bg-transparent border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}>
+                                <Sparkles size={20} />
+                                <span className="text-[10px] font-bold uppercase">ULTRA FIDEL</span>
+                            </button>
                             <button onClick={() => setPhotoStyle('professional')} className={`flex-1 py-3 px-2 rounded-xl border flex flex-col items-center gap-2 transition-all ${photoStyle === 'professional' ? 'bg-zinc-800 border-orange-500/50 text-white' : 'bg-transparent border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}>
                                 <Camera size={20} />
                                 <span className="text-[10px] font-bold uppercase">ULTRA CAM</span>
@@ -501,10 +505,6 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
                             <button onClick={() => setPhotoStyle('selfie')} className={`flex-1 py-3 px-2 rounded-xl border flex flex-col items-center gap-2 transition-all ${photoStyle === 'selfie' ? 'bg-zinc-800 border-orange-500/50 text-white' : 'bg-transparent border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}>
                                 <User size={20} />
                                 <span className="text-[10px] font-bold uppercase">MODO SELFIE</span>
-                            </button>
-                            <button onClick={() => setPhotoStyle('ultra_mode')} className={`flex-1 py-3 px-2 rounded-xl border flex flex-col items-center gap-2 transition-all ${photoStyle === 'ultra_mode' ? 'bg-zinc-800 border-orange-500/50 text-white' : 'bg-transparent border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}>
-                                <Sparkles size={20} />
-                                <span className="text-[10px] font-bold uppercase">ULTRA MODE</span>
                             </button>
                         </div>
                     </div>
