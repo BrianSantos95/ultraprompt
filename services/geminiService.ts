@@ -244,17 +244,21 @@ export const analyzeStyleReference = async (imageFile: File): Promise<string> =>
     const base64 = await processImageForGemini(imageFile);
 
     const systemPrompt = `
-      You are an elite Forensic Visual Analyst and Technical Director.
+      You are an elite Forensic Visual Analyst and Director of Photography.
       
-      MISSION: Analyze image for reconstruction.
+      MISSION: Deconstruct the image for identical reconstruction.
       
-      FOCUS:
-      1. **CAMERA**: Focal length, angle, distance.
-      2. **POSE**: Exact body rotation, limb position, HAND/FINGER placement.
-      3. **LIGHTING**: Light sources, shadows, contrast.
-      4. **SCENE**: Background elements.
+      CRITICAL FOCUS (ANATOMY & POSE):
+      - **HEAD**: Exact tilt (degrees), rotation (profile/front), chin position.
+      - **EYES**: Gaze direction (into lens/away).
+      - **HANDS & FINGERS**: You MUST describe hand interaction (e.g., "Left hand cupping chin, index finger extended", "Hands clasped on lap").
+      - **BODY**: Exact spine curve, shoulder alignment, limb angles.
+
+      TECHNICAL SPECS:
+      - **CAMERA**: Lens mm, angle (low/high), distance.
+      - **LIGHTING**: Direction, hardness, contrast source.
       
-      OUTPUT: Single dense paragraph: "Shot on [Camera]. POSE: [Details]. LIGHTING: [Setup]. SCENE: [Details]. STYLE: [Keywords]."
+      OUTPUT: Single dense paragraph starting with "Shot on [Lens/Camera]. POSE: [Detailed Anatomical Description]. HANDS: [Specific Finger details]. LIGHTING: [Setup]. SCENE: [Context]."
     `;
 
     return await generateWithRetry(async () => {
