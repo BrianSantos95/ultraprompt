@@ -185,7 +185,7 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
     // ... inside UltraGenView component
 
     // Valid values for photo style
-    type PhotoStyle = 'professional' | 'iphone' | 'selfie';
+    type PhotoStyle = 'professional' | 'iphone' | 'selfie' | 'ultra_mode';
     const [photoStyle, setPhotoStyle] = useState<PhotoStyle>('professional');
 
     // ... existing state
@@ -286,11 +286,16 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
                     photoStylePrompt = "Shot on iPhone 15 Pro Max REAR CAMERA (Main Lens 48MP). Digital photography aesthetic, sharp details, HDR processing style, vibrant colors. NOT A SELFIE. Subject is being photographed by someone else. High quality social media content style.";
                 } else if (photoStyle === 'selfie') {
                     photoStylePrompt = "TRUE SELFIE POV: Subject's arm is extended forward holding the camera (invisible). The camera IS the phone. NO visible phone in hand. Perspective distortion typical of wide-angle front camera. Subject looking DIRECTLY into lens. One arm extended out of frame to hold the camera.";
+                } else if (photoStyle === 'ultra_mode') {
+                    photoStylePrompt = "HIGH FIDELITY SCENE RECREATION. The lighting, composition, and surrounding elements MUST match the reference image exactly. No extra artistic filters. REALISTIC RAW STYLE. Focus on merging the subject identity seamlessly into this EXACT scene.";
                 }
 
                 // Append Identity ALWAYS if available
                 if (currentSpecialistDesc) {
-                    parts.push(`SUBJECT IDENTITY (STRICT): The main subject IS ${currentSpecialistDesc}. You MUST preserve these facial features, including tattoos/scars.`);
+                    // STRICT IDENTITY INSTRUCTIONS
+                    parts.push(`SUBJECT IDENTITY (STRICT): The main subject IS ${currentSpecialistDesc}.`);
+                    parts.push(`IMPORTANT: PRESERVE EXACT AGE AND SKIN TEXTURE. DO NOT ADD WRINKLES OR AGING EFFECTS unless present in the identity. DO NOT CHANGE HAIR LENGTH.`);
+                    parts.push(`You MUST preserve facial features, tattoos, and scars exactly as described.`);
                 }
 
                 if (activeMode === 'visual') {
@@ -302,8 +307,15 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
                         } catch (e) {
                             styleDetail = "Professional photography.";
                         }
-                        parts.push(`STYLE REFERENCE: ${styleDetail}`);
-                        parts.push(`TASK: COPY the pose, lighting, and composition from the 'STYLE REFERENCE' but SWAP the person with 'SUBJECT IDENTITY'.`);
+                        parts.push(`STYLE REFERENCE DESCRIPTION: ${styleDetail}`);
+
+                        if (photoStyle === 'ultra_mode') {
+                            parts.push(`TASK: COPY the pose, lighting, background, and objects from the 'Reference Image' PIXEL-PERFECTLY.`);
+                            parts.push(`ACTION: SWAP the person in the reference with 'SUBJECT IDENTITY'.`);
+                            parts.push(`CONSTRAINT: The final image must look exactly like the reference context, but with the specialist's face and body usage.`);
+                        } else {
+                            parts.push(`TASK: COPY the pose, lighting, and composition from the 'STYLE REFERENCE' but SWAP the person with 'SUBJECT IDENTITY'.`);
+                        }
                     } else {
                         parts.push(`TASK: specific portrait of 'SUBJECT IDENTITY'.`);
                     }
@@ -489,6 +501,10 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
                             <button onClick={() => setPhotoStyle('selfie')} className={`flex-1 py-3 px-2 rounded-xl border flex flex-col items-center gap-2 transition-all ${photoStyle === 'selfie' ? 'bg-zinc-800 border-orange-500/50 text-white' : 'bg-transparent border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}>
                                 <User size={20} />
                                 <span className="text-[10px] font-bold uppercase">MODO SELFIE</span>
+                            </button>
+                            <button onClick={() => setPhotoStyle('ultra_mode')} className={`flex-1 py-3 px-2 rounded-xl border flex flex-col items-center gap-2 transition-all ${photoStyle === 'ultra_mode' ? 'bg-zinc-800 border-orange-500/50 text-white' : 'bg-transparent border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}>
+                                <Sparkles size={20} />
+                                <span className="text-[10px] font-bold uppercase">ULTRA MODE</span>
                             </button>
                         </div>
                     </div>
