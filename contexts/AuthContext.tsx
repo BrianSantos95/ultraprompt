@@ -46,7 +46,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 .single();
 
             const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('TIMEOUT_5S: Supabase demorou muito para responder')), 5000)
+                setTimeout(() => reject(new Error('TIMEOUT_15S: Supabase demorou muito para responder')), 15000)
             );
 
             const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
