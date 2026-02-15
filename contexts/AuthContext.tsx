@@ -39,6 +39,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const targetId = manualUserId || user?.id;
         if (!targetId) return;
 
+        // 1. OPTIMISTIC UI: Load from cache immediately
+        try {
+            const cached = localStorage.getItem(`profile_cache_${targetId}`);
+            if (cached) {
+                const data = JSON.parse(cached);
+                setCredits(data.credits);
+                setPlan(data.subscription_tier || 'free');
+                setFullName(data.full_name || '');
+                setAvatarUrl(data.avatar_url || '');
+                setHasLifetimePrompt(!!data.has_lifetime_prompt);
+            }
+        } catch (e) {
+            console.warn("Cache read error", e);
+        }
+
         // Prevent concurrent refreshes
         if (isRefreshingRef.current) {
             console.log("DEBUG: Refresh already in progress, skipping.");
@@ -64,11 +79,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.log("DEBUG: Fetch retornou:", { data, error });
 
             if (data && !error) {
+                // Update State
                 setCredits(data.credits);
                 setPlan(data.subscription_tier || 'free');
                 setFullName(data.full_name || '');
                 setAvatarUrl(data.avatar_url || '');
                 setHasLifetimePrompt(!!data.has_lifetime_prompt);
+
+                // Update Cache
+                localStorage.setItem(`profile_cache_${targetId}`, JSON.stringify(data));
+
                 if (data.is_banned) {
                     console.warn("User is banned");
                 }
