@@ -283,7 +283,7 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
                 if (photoStyle === 'professional') {
                     photoStylePrompt = "Shot on Sony A7R IV, 85mm lens, f/1.8, professional studio lighting, extremely detailed, sharp focus, 8k, highly aesthetic.";
                 } else if (photoStyle === 'iphone') {
-                    photoStylePrompt = "Shot on iPhone 15 Pro Max REAR CAMERA (Main Lens 48MP). Digital photography aesthetic, sharp details, HDR processing style, vibrant colors. NOT A SELFIE. Subject is being photographed by someone else. High quality social media content style.";
+                    photoStylePrompt = "Shot on iPhone 15 Pro Max REAR CAMERA (Main Lens 48MP). Natural photorealism, high resolution, smooth texture, cinematic lighting, accurate colors. NOT A SELFIE. Subject is being photographed by someone else. Tier 1 social media quality.";
                 } else if (photoStyle === 'selfie') {
                     photoStylePrompt = "TRUE SELFIE POV: Subject's arm is extended forward holding the camera (invisible). The camera IS the phone. NO visible phone in hand. Perspective distortion typical of wide-angle front camera. Subject looking DIRECTLY into lens. One arm extended out of frame to hold the camera.";
                 } else if (photoStyle === 'ultra_mode') {
