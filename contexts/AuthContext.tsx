@@ -98,7 +98,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     if (session?.user) {
                         console.log("Session found:", session.user.id);
                         setUser(session.user);
-                        await refreshCredits(session.user.id);
+                        // Start credit refresh in background, don't block UI loading
+                        refreshCredits(session.user.id);
                     } else {
                         console.log("No active session found.");
                         setUser(null);
