@@ -130,21 +130,51 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
 
     // --- Core Logic ---
 
-    // Helper to convert File to Base64
-    const fileToBase64 = (file: File): Promise<string> => {
+    // Helper to process & optimize images for AI (Resizing + Format Conversion)
+    const processImageForAI = (file: File): Promise<{ base64: string, mimeType: string }> => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
-            reader.onload = () => {
-                if (typeof reader.result === 'string') {
-                    // Remove data URL prefix (e.g. "data:image/jpeg;base64,")
-                    const base64 = reader.result.split(',')[1];
-                    resolve(base64);
-                } else {
-                    reject(new Error("Failed to convert file to base64"));
-                }
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target?.result as string;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    // Resize logic: Max 1536px on longest side to avoid API limits/timeouts
+                    const MAX_SIZE = 1536;
+                    if (width > height) {
+                        if (width > MAX_SIZE) {
+                            height *= MAX_SIZE / width;
+                            width = MAX_SIZE;
+                        }
+                    } else {
+                        if (height > MAX_SIZE) {
+                            width *= MAX_SIZE / height;
+                            height = MAX_SIZE;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        reject(new Error("Canvas context failed"));
+                        return;
+                    }
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // Convert to JPEG (handles HEIC/transparency/size)
+                    const mimeType = 'image/jpeg';
+                    const dataUrl = canvas.toDataURL(mimeType, 0.85); // 85% quality
+                    const base64 = dataUrl.split(',')[1];
+                    resolve({ base64, mimeType });
+                };
+                img.onerror = () => reject(new Error("Falha ao processar imagem. Tente outra foto."));
             };
-            reader.onerror = error => reject(error);
+            reader.onerror = () => reject(new Error("Erro ao ler arquivo."));
         });
     };
 
@@ -189,35 +219,37 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
             let finalPromptToUse = "";
             let referenceImagesPayload: Array<{ data: string, mimeType: string }> = [];
 
-            // 1. Prepare Reference Images Logic (Same as before)
+
+            // 1. Prepare Reference Images Logic
             // MODE: VISUAL (Needs Style/Pose + Identity)
             if (activeMode === 'visual') {
                 // Image 1: Style/Pose Reference (from 'referenceImages')
                 if (referenceImages.length > 0) {
-                    const file = referenceImages[0].file;
-                    const base64 = await fileToBase64(file);
-                    referenceImagesPayload.push({ data: base64, mimeType: file.type });
+                    setStatusMessage("Otimizando imagem de referência...");
+                    const processed = await processImageForAI(referenceImages[0].file);
+                    referenceImagesPayload.push({ data: processed.base64, mimeType: processed.mimeType });
                 }
 
                 // Image 2: Identity Reference (from 'specialistImages')
                 if (specialistImages.length > 0) {
-                    const file = specialistImages[0].file;
-                    const base64 = await fileToBase64(file);
-                    referenceImagesPayload.push({ data: base64, mimeType: file.type });
+                    setStatusMessage("Otimizando foto do especialista...");
+                    const processed = await processImageForAI(specialistImages[0].file);
+                    referenceImagesPayload.push({ data: processed.base64, mimeType: processed.mimeType });
                 }
             }
             // MODE: PROMPT / ULTRA (Needs Identity Only)
             else {
                 if (specialistImages.length > 0) {
-                    const file = specialistImages[0].file;
-                    const base64 = await fileToBase64(file);
-                    referenceImagesPayload.push({ data: base64, mimeType: file.type });
+                    setStatusMessage("Otimizando foto do especialista...");
+                    const processed = await processImageForAI(specialistImages[0].file);
+                    referenceImagesPayload.push({ data: processed.base64, mimeType: processed.mimeType });
                 }
 
                 // ULTRA MODE: Add Object Image if exists
                 if (activeMode === 'ultra' && hasObjectImage && objectImageFile) {
-                    const base64 = await fileToBase64(objectImageFile);
-                    referenceImagesPayload.push({ data: base64, mimeType: objectImageFile.type });
+                    setStatusMessage("Otimizando imagem do objeto...");
+                    const processed = await processImageForAI(objectImageFile);
+                    referenceImagesPayload.push({ data: processed.base64, mimeType: processed.mimeType });
                 }
             }
 
