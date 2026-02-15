@@ -90,7 +90,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const initSession = async (attempt = 1) => {
             try {
                 console.log(`Checking session (attempt ${attempt})...`);
-                const { data: { session }, error } = await supabase.auth.getSession();
+
+                // Race getSession against a 2s timeout
+                const sessionPromise = supabase.auth.getSession();
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('TIMEOUT_SESSION_CHECK')), 2000)
+                );
+
+                const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]) as any;
 
                 if (error) throw error;
 
@@ -111,7 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 console.error(`Session check failed (attempt ${attempt}):`, error);
 
                 // Retry specifically on AbortError or network errors, up to 3 times
-                if (mounted && attempt < 3 && (error.name === 'AbortError' || error.message.includes('fetch'))) {
+                if (mounted && attempt < 3 && error.message !== 'TIMEOUT_SESSION_CHECK' && (error.name === 'AbortError' || error.message.includes('fetch'))) {
                     console.log(`Retrying in ${attempt * 500}ms...`);
                     setTimeout(() => initSession(attempt + 1), attempt * 500);
                     return; // Don't set loading false yet
