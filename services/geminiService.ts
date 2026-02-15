@@ -212,13 +212,11 @@ export const analyzeSpecialistIdentity = async (
       The goal is to allow regenerating images of THIS SPECIFIC PERSON in new contexts while maintaining their identity 100%.
 
       STRICT RULES:
-      1. **CAPTURE IDENTITY PRECISION**: Describe specific facial bone structure, exact eye shape/color, nose bridge, jawline, skin texture.
-      2. **DISTINCTIVE FEATURES (MANDATORY)**: You MUST describe any TATTOOS (location, design, color), SCARS, MOLES, or unique skin markings. If the person has face tattoos, describe them in detail.
-      3. **CONSISTENCY**: Synthesize traits consistent across all provided images.
-      4. **OBJECTIVE**: Be descriptive, precise, and visual.
+      1. **IDENTITY**: Describe facial structure, eye shape/color, nose, jawline, skin texture.
+      2. **FEATURES**: You MUST describe TATTOOS, SCARS, MOLES.
+      3. **CONSISTENCY**: Synthesize traits across images.
       
-      OUTPUT FORMAT:
-      Return ONLY a single, highly detailed paragraph starting with: "A photo of [Age] [Gender] [Ethnicity], [Detailed Face Description], [Describe Tattoos/Markings if any], [Body/Hair Details]..."
+      OUTPUT: Single detailed paragraph starting with: "A photo of [Age] [Gender] [Ethnicity], [Face Details], [Tattoos/Marks], [Body/Hair]..."
     `;
 
     return await generateWithRetry(async () => {
@@ -248,21 +246,15 @@ export const analyzeStyleReference = async (imageFile: File): Promise<string> =>
     const systemPrompt = `
       You are an elite Forensic Visual Analyst and Technical Director.
       
-      CRITICAL MISSION: Deconstruct the provided image into a SURGICAL, SCIENTIFIC set of instructions for perfect reconstruction.
+      MISSION: Analyze image for reconstruction.
       
-      ANALYSIS PROTOCOLS (MANDATORY):
-      1. **SPATIAL & CAMERA**: Identify exact focal length (e.g., 35mm, 85mm), camera height & angle in degrees (e.g., "Low angle 30°"), distance to subject, and sensor format (e.g., "Full Frame", "Medium Format").
-      2. **SURGICAL POSE RECONSTRUCTION**: Describe the pose with ANATOMICAL PRECISION. 
-         - **Spine/Body**: "Torso rotated 15° left, spine erect".
-         - **Limbs**: "Right arm abducted 45°, elbow flexed".
-         - **HANDS/FINGERS (EXTREME PRIORITY)**: You MUST describe specific finger placement (e.g., "Index finger pointing, others curled", "Grip tension visible").
-      3. **LIGHTING PHYSICS**: Map the light sources. "Key light softbox 45° left, Rim light hard 5600K right". Describe shadow falloff and contrast ratio.
-      4. **SCENE & ELEMENTS**: List every background element and its spatial relationship to the subject. "Gaussian blur on background (f/1.8)".
+      FOCUS:
+      1. **CAMERA**: Focal length, angle, distance.
+      2. **POSE**: Exact body rotation, limb position, HAND/FINGER placement.
+      3. **LIGHTING**: Light sources, shadows, contrast.
+      4. **SCENE**: Background elements.
       
-      OUTPUT FORMAT (Single, dense paragraph):
-      "Shot on [Camera/Lens], [Angle/Distance]. SUBJECT POSE: [Scientific Pose Description including Hand/Finger details]. LIGHTING: [Technical Lighting Setup]. SCENE: [Detailed Background & Props]. STYLE: [Visual Aesthetic keywords]."
-      
-      STRICTLY OBJECTIVE. NO FLUFF. USE TECHNICAL TERMINOLOGY.
+      OUTPUT: Single dense paragraph: "Shot on [Camera]. POSE: [Details]. LIGHTING: [Setup]. SCENE: [Details]. STYLE: [Keywords]."
     `;
 
     return await generateWithRetry(async () => {
