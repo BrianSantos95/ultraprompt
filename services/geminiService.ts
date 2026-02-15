@@ -14,7 +14,7 @@ const processImageForGemini = (file: File): Promise<string> => {
         const canvas = document.createElement('canvas');
         let width = img.width;
         let height = img.height;
-        const MAX_SIZE = 1536;
+        const MAX_SIZE = 1024;
 
         if (width > MAX_SIZE || height > MAX_SIZE) {
           if (width > height) {
@@ -103,20 +103,14 @@ export const generatePromptFromImage = async (
       
       ${languageInstruction}
       
-      STRICT RULES (NON-NEGOTIABLE):
-      1. **NO CREATIVITY**: Do not invent details. Do not stylize. Do not interpret emotions subjectively. Use purely descriptive, technical, and objective language.
-      2. **FREEZE ANATOMY & POSE**: The pose, finger placement, head tilt, and spine curvature must be described with geometrical precision.
-      3. **ABSOLUTE ANONYMITY (CRITICAL)**: You MUST NOT describe the person's physical appearance features.
-         - **FORBIDDEN**: Hair color, eye color, skin tone, age, beard, mustache, tattoos, scars, makeup, specific facial structures.
-         - **ALLOWED**: Gender ("Man", "Woman"), body type (if relevant to pose), and clothing.
-         - **REASON**: This prompt will be used to apply a DIFFERENT face/identity. Describing the current face will ruin the generation.
-      4. **FREEZE EXPRESSION**: Describe the expression via muscle states (contracted/relaxed) but keep it transferable (e.g., "lips corners slightly raised", "eyebrows furrowed").
-      5. **CAMERA LOCK**: You must describe the exact camera angle, focal length estimate, and distance from subject.
-      6. **COMPLETENESS**: Scan the image from top to bottom. Do not miss accessories, background details, or subtle posture nuances.
+       STRICT RULES:
+      1. **NO CREATIVITY**: Use purely descriptive, technical, and objective language.
+      2. **FREEZE POSE**: Describe the pose with geometrical precision.
+      3. **ANONYMITY**: Do not describe identity features (hair color, eye color, age, scars). Focus on gender, body type, and clothing.
+      4. **CAMERA**: Describe exact camera angle and distance.
+      5. **COMPLETENESS**: Scan from top to bottom.
 
-      PRIORITY: LIGHTING & ATMOSPHERE
-      - You must obsessively describe lighting physics: "fresnel effect", "specular highlights on skin", "subtle shadows in crevices", "volumetric lighting".
-      - Describe skin QUALITY (e.g., "realistic skin texture", "subsurface scattering") but WITHOUT specific imperfections like pimples or unique rugosity of the reference.
+      PRIORITY: LIGHTING & ATMOSPHERE. Describe lighting physics (fresnel, shadows) and skin quality (texture) without specific imperfections.
 
       CONFIGURATION:
       - Precision: ${settings.detailLevel} (${detailInstruction})
