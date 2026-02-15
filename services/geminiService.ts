@@ -212,11 +212,11 @@ export const analyzeSpecialistIdentity = async (
       The goal is to allow regenerating images of THIS SPECIFIC PERSON in new contexts while maintaining their identity 100%.
 
       STRICT RULES:
-      1. **IDENTITY**: Describe facial structure, eye shape/color, nose, jawline, skin texture.
-      2. **FEATURES**: You MUST describe TATTOOS, SCARS, MOLES.
-      3. **CONSISTENCY**: Synthesize traits across images.
+      1. **IDENTITY**: Describe facial structure, eye shape/color, nose, jawline.
+      2. **SKIN**: Be extremely careful. ONLY describe tattoos/scars/moles if they are prominently visible. If skin appears clear, STATE "clear skin". DO NOT HALLUCINATE MOLES.
+      3. **CONSISTENCY**: Synthesize traits across images. Do not describe transient blemishes.
       
-      OUTPUT: Single detailed paragraph starting with: "A photo of [Age] [Gender] [Ethnicity], [Face Details], [Tattoos/Marks], [Body/Hair]..."
+      OUTPUT: Single detailed paragraph starting with: "A photo of [Age] [Gender] [Ethnicity], [Face Details], [Skin/Marks], [Body/Hair]..."
     `;
 
     return await generateWithRetry(async () => {
