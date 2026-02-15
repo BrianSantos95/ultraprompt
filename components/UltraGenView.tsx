@@ -283,9 +283,9 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
                 if (photoStyle === 'professional') {
                     photoStylePrompt = "Shot on Sony A7R IV, 85mm lens, f/1.8, professional studio lighting, extremely detailed, sharp focus, 8k, highly aesthetic.";
                 } else if (photoStyle === 'iphone') {
-                    photoStylePrompt = "Shot on iPhone 15 Pro Max REAR CAMERA (Main Lens 48MP). Natural photorealism, high resolution, smooth texture, cinematic lighting, accurate colors. NOT A SELFIE. Subject is being photographed by someone else. Tier 1 social media quality.";
+                    photoStylePrompt = "Shot on iPhone 15 Standard Lens (12MP). Natural daylight, raw photo aesthetic, slight digital noise, authentic texture. NOT A SELFIE. Subject is being photographed by someone else. Casual snapshot style, not processed.";
                 } else if (photoStyle === 'selfie') {
-                    photoStylePrompt = "TRUE SELFIE POV: Subject's arm is extended forward holding the camera (invisible). The camera IS the phone. NO visible phone in hand. Perspective distortion typical of wide-angle front camera. Subject looking DIRECTLY into lens. One arm extended out of frame to hold the camera.";
+                    photoStylePrompt = "TRUE SELFIE POV (8MP Front Camera Quality). Subject's arm is extended forward. Perspective distortion typical of wide-angle front camera. Slight digital noise/grain, imperfect lighting, authentic selfie look. Subject looking DIRECTLY into lens. One arm extended out of frame to hold the camera.";
                 } else if (photoStyle === 'ultra_mode') {
                     photoStylePrompt = "HIGH FIDELITY SCENE RECREATION. The lighting, composition, and surrounding elements MUST match the reference image exactly. No extra artistic filters. REALISTIC RAW STYLE. Focus on merging the subject identity seamlessly into this EXACT scene.";
                 }
