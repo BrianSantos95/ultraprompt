@@ -14,10 +14,14 @@ interface KiwifyPayload {
         email: string;
         [key: string]: any;
     };
-    plan?: {
+    Plan?: { // Kiwify as vezes manda com maiuscula
         name: string;
         [key: string]: any;
     };
+    plan?: {
+        name: string;
+        [key: string]: any;
+    }; // Garantir compatibilidade com variações
     [key: string]: any;
 }
 
@@ -28,7 +32,7 @@ interface ProfileUpdate {
     credits?: number;
 }
 
-// Inicialização com Fallback para evitar erros de tipagem no editor
+// Inicialização com Fallback
 const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
@@ -43,8 +47,7 @@ Deno.serve(async (req: Request) => {
         const url = new URL(req.url);
         const signature = url.searchParams.get("signature");
 
-        // SEGURANÇA: Token deve vir de variável de ambiente. 
-        // fallback para o valor hardcoded apenas para manter compatibilidade imediata, mas altere no Supabase Secrets!
+        // SEGURANÇA: Token secreto do Kiwify
         const KIWIFY_TOKEN = Deno.env.get("KIWIFY_WEBHOOK_SECRET") || "p2937lzrrvk";
 
         if (signature !== KIWIFY_TOKEN) {
@@ -66,7 +69,9 @@ Deno.serve(async (req: Request) => {
         console.log("Kiwify Webhook Payload:", JSON.stringify(payload));
 
         // 1. Validação Básica
-        const { order_status, product_id, customer, plan } = payload;
+        const { order_status, product_id, customer } = payload;
+        // Kiwify pode mandar 'Plan' ou 'plan'
+        const planData = payload.plan || payload.Plan;
         const customerEmail = customer?.email;
 
         // Verificar status
@@ -84,35 +89,43 @@ Deno.serve(async (req: Request) => {
         // 2. Mapeamento de Produto/Plano para Ação
         let updateData: ProfileUpdate = {};
 
-        // Configuração de Produtos e Planos
+        // Configuração de IDs
         const ID_VITALICIO = "3IrPND2";
 
+        // Lógica de Decisão
         if (product_id === ID_VITALICIO) {
+            console.log(`Detected Lifetime Product purchase for ${customerEmail}`);
             updateData = { has_lifetime_prompt: true };
-        } else if (plan?.name) {
-            switch (plan.name) {
-                case "Ultra Start":
-                    updateData = { subscription_tier: "Ultra Start", credits: 20 };
+        }
+
+        // Verifica assinatura INDEPENDENTE do produto ID (caso o produto mude mas o plano se mantenha)
+        if (planData?.name) {
+            const planNameNormalized = planData.name.trim().toLowerCase();
+            console.log(`Detected Subscription Plan: ${planData.name} (normalized: ${planNameNormalized})`);
+
+            switch (planNameNormalized) {
+                case "ultra start":
+                    updateData = { ...updateData, subscription_tier: "Ultra Start", credits: 20 };
                     break;
-                case "Ultra Pro":
-                    updateData = { subscription_tier: "Ultra Pro", credits: 70 };
+                case "ultra pro":
+                    updateData = { ...updateData, subscription_tier: "Ultra Pro", credits: 70 };
                     break;
-                case "Ultra Max":
-                    updateData = { subscription_tier: "Ultra Max", credits: 180 };
+                case "ultra max":
+                    updateData = { ...updateData, subscription_tier: "Ultra Max", credits: 180 };
                     break;
                 default:
-                    console.log("Unknown plan name:", plan.name);
+                    console.warn("Unknown plan name:", planData.name);
             }
         }
 
-        // Se não houve alteração nos dados relevantes, encerra.
+        // Se não houve alteração
         if (Object.keys(updateData).length === 0) {
-            console.log("No relevant product or plan action found for:", product_id, plan?.name);
+            console.log("No relevant actions found for this payload.");
             return new Response("No action taken", { status: 200 });
         }
 
-        // 3. Atualizar Profile no Banco
-        console.log(`Updating profile for ${customerEmail} with:`, updateData);
+        // 3. Atualizar Profile
+        console.log(`Updating profile for ${customerEmail} with:`, JSON.stringify(updateData));
 
         const { data, error } = await supabase
             .from("profiles")
@@ -121,23 +134,22 @@ Deno.serve(async (req: Request) => {
             .select();
 
         if (error) {
-            console.error("DB Error:", error);
+            console.error("Supabase DB Error:", error);
             return new Response("Database error", { status: 500 });
         }
 
-        // Verificar se alguma linha foi realmente afetada
         if (!data || data.length === 0) {
-            console.warn(`User with email ${customerEmail} not found in profiles.`);
-            // Retornamos 200 para a Kiwify não ficar tentando reenviar, pois é um erro de "negócio" (usuário não cadastrado)
+            console.warn(`User with email ${customerEmail} not found in profiles (User needs to sign up locally first).`);
+            // Retornamos 200 para confirmação de recebimento, mesmo sem usuário
             return new Response("User not found", { status: 200 });
         }
 
-        console.log("Update successful:", data);
+        console.log("Update successful. New profile state:", data[0]);
 
         return new Response("Success", { status: 200 });
 
     } catch (err) {
-        console.error("Webhook Internal Error:", err);
+        console.error("Webhook Critical Failure:", err);
         return new Response("Internal Server Error", { status: 500 });
     }
 });
