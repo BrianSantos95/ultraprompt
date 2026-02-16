@@ -313,6 +313,7 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
                             parts.push(`TASK: COPY the pose, lighting, background, and objects from the 'Reference Image' PIXEL-PERFECTLY.`);
                             parts.push(`ACTION: SWAP the person in the reference with 'SUBJECT IDENTITY'.`);
                             parts.push(`CONSTRAINT: The final image must look exactly like the reference context, but with the specialist's face and body usage.`);
+                            parts.push(`CRITICAL: DO NOT MIRROR OR FLIP. Left side of reference MUST be Left side of output. Maintain Viewer's perspective.`);
                         } else {
                             parts.push(`TASK: COPY the pose, lighting, and composition from the 'STYLE REFERENCE' but SWAP the person with 'SUBJECT IDENTITY'.`);
                         }
@@ -457,8 +458,8 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
             {/* --- GLOBAL STATUS POPUP --- */}
             {statusMessage && (statusMessage.startsWith("⚠️") || statusMessage.startsWith("Erro:")) && (
                 <div className={`fixed top-24 left-1/2 -translate-x-1/2 z-[100] px-6 py-4 rounded-xl backdrop-blur-md shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 max-w-lg border text-sm font-medium ${statusMessage.startsWith("⚠️")
-                        ? "bg-yellow-500/10 border-yellow-500/50 text-yellow-200"
-                        : "bg-red-500/10 border-red-500/50 text-red-200"
+                    ? "bg-yellow-500/10 border-yellow-500/50 text-yellow-200"
+                    : "bg-red-500/10 border-red-500/50 text-red-200"
                     }`}>
                     <AlertTriangle className={`shrink-0 ${statusMessage.startsWith("⚠️") ? "text-yellow-500" : "text-red-500"}`} size={24} />
                     <div className="flex-1">
@@ -538,6 +539,12 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
                                 <span className="text-[10px] font-bold uppercase">MODO SELFIE</span>
                             </button>
                         </div>
+                        <p className="text-xs text-zinc-500 min-h-[2.5em] pt-2 border-t border-zinc-800/50 mt-2">
+                            {photoStyle === 'ultra_mode' && "Copia EXATAMENTE a cena, luz e pose da referência visual carregada abaixo. Use quando a fidelidade for prioridade."}
+                            {photoStyle === 'professional' && "Estilo de câmera profissional (Sony A7R), com iluminação de estúdio controlada, foco nítido e fundo desfocado (bokeh)."}
+                            {photoStyle === 'iphone' && "Estilo casual e autêntico de câmera de celular. Textura natural, leve granulação e iluminação do dia a dia."}
+                            {photoStyle === 'selfie' && "Simula uma selfie real tirada com a câmera frontal. Ângulo, distorção de lente e pose típicos de autorretrato."}
+                        </p>
                     </div>
 
 

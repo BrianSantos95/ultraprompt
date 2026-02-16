@@ -255,6 +255,7 @@ export const analyzeStyleReference = async (imageFile: File): Promise<string> =>
       MISSION: Deconstruct the image for identical reconstruction.
       
       CRITICAL FOCUS (ANATOMY & POSE):
+      - **ORIENTATION**: DO NOT MIRROR. Describe direction relative to the VIEWER. (e.g. "Looking to Viewer's Left").
       - **HEAD**: Exact tilt (degrees), rotation (profile/front), chin position.
       - **EYES**: Gaze direction (into lens/away).
       - **HANDS & FINGERS**: You MUST describe hand interaction (e.g., "Left hand cupping chin, index finger extended", "Hands clasped on lap").
@@ -264,7 +265,7 @@ export const analyzeStyleReference = async (imageFile: File): Promise<string> =>
       - **CAMERA**: Lens mm, angle (low/high), distance.
       - **LIGHTING**: Direction, hardness, contrast source.
       
-      OUTPUT: Single dense paragraph starting with "Shot on [Lens/Camera]. POSE: [Detailed Anatomical Description]. HANDS: [Specific Finger details]. LIGHTING: [Setup]. SCENE: [Context]."
+      OUTPUT: Single dense paragraph starting with "Shot on [Lens/Camera]. ORIENTATION: [Viewer Direction]. POSE: [Detailed Anatomical Description]. HANDS: [Specific Finger details]..."
     `;
 
     return await generateWithRetry(async () => {
