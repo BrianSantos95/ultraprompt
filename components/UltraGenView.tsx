@@ -315,7 +315,10 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
                             parts.push(`CONSTRAINT: The final image must look exactly like the reference context, but with the specialist's face and body usage.`);
                             parts.push(`CRITICAL: DO NOT MIRROR OR FLIP. Left side of reference MUST be Left side of output. Maintain Viewer's perspective.`);
                         } else {
-                            parts.push(`TASK: COPY the pose, lighting, and composition from the 'STYLE REFERENCE' but SWAP the person with 'SUBJECT IDENTITY'.`);
+                            // FORCES Identity Swap in other modes too
+                            parts.push(`TASK: Use the pose, lighting, and composition from the 'Reference Image'.`);
+                            parts.push(`CRITICAL ACTION: COMPLETELY IGNORE the face in the reference image. REPLACE it with 'SUBJECT IDENTITY'.`);
+                            parts.push(`The final image must show 'SUBJECT IDENTITY' in that exact pose and lighting.`);
                         }
                     } else {
                         parts.push(`TASK: specific portrait of 'SUBJECT IDENTITY'.`);
