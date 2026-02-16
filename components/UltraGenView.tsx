@@ -310,15 +310,16 @@ export const UltraGenView: React.FC<UltraGenViewProps> = ({ onNavigate }) => {
                         parts.push(`STYLE REFERENCE DESCRIPTION: ${styleDetail}`);
 
                         if (photoStyle === 'ultra_mode') {
-                            parts.push(`TASK: COPY the pose, lighting, background, and objects from the 'Reference Image' PIXEL-PERFECTLY.`);
-                            parts.push(`ACTION: SWAP the person in the reference with 'SUBJECT IDENTITY'.`);
-                            parts.push(`CONSTRAINT: The final image must look exactly like the reference context, but with the specialist's face and body usage.`);
+                            parts.push(`TASK: Recreate the Reference Image scene, BUT WITH A DIFFERENT PERSON.`);
+                            parts.push(`REFERENCE IMAGE ROLE: Source for Pose, Lighting, Camera Angle, Clothing, and Background ONLY.`);
+                            parts.push(`IDENTITY ROLE: The person's FACE, SKIN, and FEATURES must be EXACTLY 'SUBJECT IDENTITY'.`);
+                            parts.push(`CRITICAL OVERRIDE: Do NOT copy facial tattoos, hair, or specific facial features from the reference image. Use ONLY the 'SUBJECT IDENTITY' face.`);
                             parts.push(`CRITICAL: DO NOT MIRROR OR FLIP. Left side of reference MUST be Left side of output. Maintain Viewer's perspective.`);
                         } else {
                             // FORCES Identity Swap in other modes too
                             parts.push(`TASK: Use the pose, lighting, and composition from the 'Reference Image'.`);
                             parts.push(`CRITICAL ACTION: COMPLETELY IGNORE the face in the reference image. REPLACE it with 'SUBJECT IDENTITY'.`);
-                            parts.push(`The final image must show 'SUBJECT IDENTITY' in that exact pose and lighting.`);
+                            parts.push(`The final image must show 'SUBJECT IDENTITY' in that exact pose and lighting (Same clothing/context is allowed).`);
                         }
                     } else {
                         parts.push(`TASK: specific portrait of 'SUBJECT IDENTITY'.`);
