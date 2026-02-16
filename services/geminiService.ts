@@ -212,11 +212,17 @@ export const analyzeSpecialistIdentity = async (
       The goal is to allow regenerating images of THIS SPECIFIC PERSON in new contexts while maintaining their identity 100%.
 
       STRICT RULES:
-      1. **IDENTITY**: Describe facial structure, eye shape/color, nose, jawline.
-      2. **SKIN**: Be extremely careful. ONLY describe tattoos/scars/moles if they are prominently visible. If skin appears clear, STATE "clear skin". DO NOT HALLUCINATE MOLES.
-      3. **CONSISTENCY**: Synthesize traits across images. Do not describe transient blemishes.
-      
-      OUTPUT: Single detailed paragraph starting with: "A photo of [Age] [Gender] [Ethnicity], [Face Details], [Skin/Marks], [Body/Hair]..."
+      1. **FACIAL GEOMETRY (CRITICAL)**: Analyze and describe:
+         - Face Shape: Exact width vs length ratio (e.g., "wide square jaw", "long oval face").
+         - Eyes: Shape, distance between them (wide-set/close-set), eyelid structure (hooded/monolid).
+         - Nose: Bridge width, tip shape (bulbous/pointed), nostril flare.
+         - Mouth: Lip shape (thin/full), philtrum definition, cupids bow.
+         - Jaw & Chin: Jawline definition (sharp/soft), chin prominence (receding/jutting).
+      2. **HAIR**: Describe hairline pattern (peak/straight), exact color (root vs tip), texture (coarse/fine), and volume.
+      3. **SKIN**: ONLY describe prominent permanent marks (scars/moles). If skin is clear, state "smooth clear skin". DO NOT HALLUCINATE MOLES.
+      4. **REALISM**: Do NOT beautify or genericize. Preserve asymmetries involving eyes, nose, or mouth that make the face unique.
+
+      OUTPUT: Single detailed paragraph starting with: "A photo of [Age] [Gender] [Ethnicity], [Structural Face Description], [Specific Features], [Hair Details]..."
     `;
 
     return await generateWithRetry(async () => {
